@@ -1,0 +1,30 @@
+{
+  "name": "mtv-ai-agent",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "lint": "tsc --noEmit",
+    "agent": "ts-node scripts/send-mtv.ts",
+    "agent:send": "ts-node scripts/send-mtv.ts",
+    "keys:generate": "ts-node scripts/generate-key.ts",
+    "keys:validate": "ts-node scripts/validate-key.ts"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-chai-matchers": "2.0.9",
+    "@nomicfoundation/hardhat-ethers": "3.0.9",
+    "@nomicfoundation/solidity-analyzer-win32-arm64-msvc": "^0.1.1",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^22.0.0",
+    "hardhat": "2.19.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.0"
+  },
+  "dependencies": {
+    "20": "^3.1.9",
+    "@openzeppelin/contracts": "^5.0.2",
+    "dotenv": "^16.4.5",
+    "ethers": "^6.13.0"
+  }
+}
