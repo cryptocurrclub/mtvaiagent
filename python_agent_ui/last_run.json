@@ -134,7 +134,7 @@
   "startNonce": 52602,
   "recipient": "0xa93065aeedce32b5792fddcc0c075e812bb01617",
   "amountMtv": 0.0001,
-  "totalTimeSeconds": 0.012,
+  "totalTimeSeconds": 0.01,
   "nativeSymbol": "MTV",
   "gasPerTx": 21000,
   "gasPriceWei": "101342428866",
@@ -144,5 +144,5 @@
   "totalFeeWei": "2128191006186000000",
   "totalFeeMtv": 2.128191006186,
   "source": "agent-server",
-  "updatedAt": "2026-09-07T22:48:17.866693+00:00"
+  "updatedAt": "2026-09-07T23:32:11.322389+00:00"
 }

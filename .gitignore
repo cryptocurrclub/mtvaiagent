@@ -1,6 +1,19 @@
+# Node / build
 node_modules/
 artifacts/
 cache/
 dist/
+
+# Secrets / local config
 .env
+python_agent_ui/.env
 wallets/
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+
+# Python virtualenv & bytecode
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
