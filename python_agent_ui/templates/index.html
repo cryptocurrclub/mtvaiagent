@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AI Agent Wallet UI</title>
-    <link rel="stylesheet" href="/static/styles.css?v=12" />
+    <link rel="stylesheet" href="/static/styles.css?v=15" />
   </head>
   <body>
     <div class="app-shell">
@@ -38,43 +38,122 @@
           <div class="fees-meta" id="feesMeta">Price via CoinGecko</div>
         </div>
 
-        <div class="batch-controls">
-          <label>Total
-            <input id="batchTotal" type="number" min="1" max="20000" value="1000" />
-          </label>
-          <label>Batch size
-            <input id="batchSize" type="number" min="1" max="20000" value="100" />
-          </label>
-          <button id="runBatchBtn" class="primary-btn">Submit batches</button>
-        </div>
-        <p id="batchSummary" class="batch-summary">10 batches of 100</p>
+        <div class="batch-layout">
+          <div class="batch-submit-panel">
+            <h3 class="panel-title">Submit batches</h3>
+            <div class="batch-controls">
+              <label>Total
+                <input id="batchTotal" type="number" min="1" max="20000" value="1000" />
+              </label>
+              <label>Batch size
+                <input id="batchSize" type="number" min="1" max="20000" value="100" />
+              </label>
+              <button id="runBatchBtn" class="primary-btn">Submit batches</button>
+            </div>
+            <p id="batchSummary" class="batch-summary">10 batches of 100</p>
+          </div>
 
-        <div class="batch-table-wrap">
-          <table class="batch-table">
-            <thead>
-              <tr><th>Batch</th><th>Requested</th><th>Sent</th><th>Skipped</th><th>Failed</th><th>Seconds</th><th>Fees (MTV)</th><th>≈ USD</th></tr>
-            </thead>
-            <tbody id="batchTableBody">
-              <tr><td colspan="8" class="batch-empty">No batches yet</td></tr>
-            </tbody>
-          </table>
-        </div>
+          <div class="batch-results-panel">
+            <h3 class="panel-title">Batch results</h3>
+            <div class="batch-table-wrap">
+              <table class="batch-table">
+                <thead>
+                  <tr><th>Batch</th><th>Requested</th><th>Sent</th><th>Skipped</th><th>Failed</th><th>Seconds</th><th>Fees (MTV)</th><th>≈ USD</th></tr>
+                </thead>
+                <tbody id="batchTableBody">
+                  <tr><td colspan="8" class="batch-empty">No batches yet</td></tr>
+                </tbody>
+              </table>
+            </div>
 
-        <div class="batch-pagination" id="batchPagination" hidden>
-          <label>Rows
-            <select id="batchPageSize">
-              <option value="10" selected>10</option>
-              <option value="25">25</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
-            </select>
-          </label>
-          <div class="batch-pagination-nav">
-            <button id="batchPrevBtn" class="secondary-btn" type="button">Prev</button>
-            <span id="batchPageInfo">Page 1 of 1</span>
-            <button id="batchNextBtn" class="secondary-btn" type="button">Next</button>
+            <div class="batch-pagination" id="batchPagination" hidden>
+              <label>Rows
+                <select id="batchPageSize">
+                  <option value="10" selected>10</option>
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+              </label>
+              <div class="batch-pagination-nav">
+                <button id="batchPrevBtn" class="secondary-btn" type="button">Prev</button>
+                <span id="batchPageInfo">Page 1 of 1</span>
+                <button id="batchNextBtn" class="secondary-btn" type="button">Next</button>
+              </div>
+            </div>
           </div>
         </div>
+
+        <div class="forever-panel">
+          <div class="forever-controls">
+            <label>Interval
+              <select id="foreverInterval">
+                <option value="5">Every 5s</option>
+                <option value="10" selected>Every 10s</option>
+                <option value="30">Every 30s</option>
+                <option value="60">Every 60s</option>
+                <option value="custom">Custom…</option>
+              </select>
+            </label>
+            <label id="foreverCustomWrap" hidden>Seconds
+              <input id="foreverCustom" type="number" min="1" max="3600" value="15" />
+            </label>
+            <label class="forever-check">
+              <input id="foreverDryRun" type="checkbox" checked /> Dry run
+            </label>
+            <button id="foreverBtn" class="primary-btn" type="button">Run Forever</button>
+          </div>
+
+          <div class="forever-status">
+            <span class="forever-badge idle" id="foreverBadge">Idle</span>
+            <span class="forever-line" id="foreverLine">Background runner is idle.</span>
+          </div>
+
+          <div class="forever-metrics" id="foreverMetrics" hidden>
+            <div><span class="fm-label">Cycles</span><span class="fm-value" id="fmCycles">0</span></div>
+            <div><span class="fm-label">Success rate</span><span class="fm-value" id="fmRate">—</span></div>
+            <div><span class="fm-label">Tx submitted</span><span class="fm-value" id="fmTx">0</span></div>
+            <div><span class="fm-label">Tx failed</span><span class="fm-value" id="fmTxFailed">0</span></div>
+            <div><span class="fm-label">Consecutive fails</span><span class="fm-value" id="fmStreak">0</span></div>
+            <div><span class="fm-label">Next cycle</span><span class="fm-value" id="fmNext">—</span></div>
+          </div>
+
+          <div class="forever-error" id="foreverError" hidden></div>
+        </div>
+
+        <div class="forever-log" id="foreverLog" hidden>
+          <div class="forever-log-head">
+            <h3>Run Forever — cycle log</h3>
+            <span class="forever-log-fail" id="foreverLogFail" hidden></span>
+            <label class="forever-log-follow">
+              <input type="checkbox" id="foreverAutoScroll" checked /> Auto-scroll
+            </label>
+          </div>
+          <div class="forever-log-scroll" id="foreverLogScroll">
+            <table class="batch-table forever-log-table">
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Batch #</th>
+                  <th>Cycles</th>
+                  <th>Accum. fees (MTV)</th>
+                  <th>≈ USD</th>
+                  <th>Elapsed</th>
+                </tr>
+              </thead>
+              <tbody id="foreverLogBody"></tbody>
+              <tfoot>
+                <tr id="foreverLogFoot">
+                  <td colspan="3">Totals</td>
+                  <td id="flFee">—</td>
+                  <td id="flUsd">—</td>
+                  <td id="flRuntime">—</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
       </section>
 
       <main class="grid">
@@ -122,6 +201,6 @@
       </section>
     </div>
 
-    <script src="/static/app.js?v=9"></script>
+    <script src="/static/app.js?v=11"></script>
   </body>
 </html>

@@ -629,3 +629,492 @@ try {
 } catch (error) {
   console.error('Batch panel init failed (wallet flow unaffected):', error);
 }
+
+/* ------------------------------------------------------------------ *
+ * "Run Forever" background runner: SSE-driven, poll fallback.
+ * The backend is a FastAPI asyncio task streaming state over
+ * text/event-stream; this client keeps a last-known snapshot so a
+ * dropped stream degrades gracefully and reconnects on its own.
+ * ------------------------------------------------------------------ */
+const foreverBtn = document.getElementById('foreverBtn');
+const foreverIntervalEl = document.getElementById('foreverInterval');
+const foreverCustomWrapEl = document.getElementById('foreverCustomWrap');
+const foreverCustomEl = document.getElementById('foreverCustom');
+const foreverDryRunEl = document.getElementById('foreverDryRun');
+const foreverBadgeEl = document.getElementById('foreverBadge');
+const foreverLineEl = document.getElementById('foreverLine');
+const foreverMetricsEl = document.getElementById('foreverMetrics');
+const foreverErrorEl = document.getElementById('foreverError');
+const fmCyclesEl = document.getElementById('fmCycles');
+const fmRateEl = document.getElementById('fmRate');
+const fmTxEl = document.getElementById('fmTx');
+const fmTxFailedEl = document.getElementById('fmTxFailed');
+const fmStreakEl = document.getElementById('fmStreak');
+const fmNextEl = document.getElementById('fmNext');
+const foreverLogEl = document.getElementById('foreverLog');
+const foreverLogBodyEl = document.getElementById('foreverLogBody');
+const foreverLogScrollEl = document.getElementById('foreverLogScroll');
+const foreverLogFailEl = document.getElementById('foreverLogFail');
+const foreverAutoScrollEl = document.getElementById('foreverAutoScroll');
+const flFeeEl = document.getElementById('flFee');
+const flUsdEl = document.getElementById('flUsd');
+const flRuntimeEl = document.getElementById('flRuntime');
+
+const forever = {
+  snapshot: null,
+  streamConnected: false,
+  source: null,
+  reconnectAt: 0,
+};
+
+// Incremental cycle-log table state. Rows are keyed by cycle id and patched
+// in place (never rebuilt wholesale) so rapid SSE updates don't thrash the DOM.
+const foreverLog = {
+  sessionKey: null,
+  rows: new Map(),   // id -> <tr>
+  stick: true,       // keep pinned to the newest row unless the user scrolls up
+  rafId: 0,
+  queued: null,
+};
+
+/* Format a duration by magnitude: <60s -> seconds, <60min -> "3.5 min",
+ * otherwise "2.25 hr". */
+function fmtDuration(ms) {
+  if (ms == null || Number.isNaN(Number(ms))) return '—';
+  const secs = Math.max(0, Number(ms) / 1000);
+  if (secs < 60) return `${secs < 10 ? secs.toFixed(1) : Math.round(secs)}s`;
+  if (secs < 3600) return `${(secs / 60).toFixed(1)} min`;
+  return `${(secs / 3600).toFixed(2)} hr`;
+}
+
+const FOREVER_BADGE = {
+  idle: ['Idle', 'idle'],
+  stopped: ['Stopped', 'idle'],
+  stopping: ['Stopping…', 'warn'],
+  submitting: ['Submitting', 'run'],
+  waiting: ['Waiting', 'run'],
+  backoff: ['Retrying', 'warn'],
+  circuit_open: ['Circuit open', 'error'],
+};
+
+function resolveForeverInterval() {
+  if (foreverIntervalEl.value === 'custom') {
+    return Math.max(1, Math.min(3600, Number(foreverCustomEl.value) || 15));
+  }
+  return Number(foreverIntervalEl.value) || 10;
+}
+
+function syncForeverCustomVisibility() {
+  foreverCustomWrapEl.hidden = foreverIntervalEl.value !== 'custom';
+}
+
+function foreverCountdown(nextRunAtIso) {
+  if (!nextRunAtIso) return null;
+  const ms = new Date(nextRunAtIso).getTime() - Date.now();
+  if (Number.isNaN(ms)) return null;
+  return Math.max(0, Math.round(ms / 1000));
+}
+
+function renderForever() {
+  const s = forever.snapshot;
+  if (!s) return;
+
+  const [label, cls] = FOREVER_BADGE[s.phase] || ['Idle', 'idle'];
+  foreverBadgeEl.textContent = forever.streamConnected || !s.active
+    ? label
+    : `${label} · reconnecting`;
+  foreverBadgeEl.className = `forever-badge ${cls}`;
+
+  let line = s.message || '—';
+  const secs = foreverCountdown(s.nextRunAt);
+  if (secs != null && (s.phase === 'waiting' || s.phase === 'backoff' || s.phase === 'circuit_open')) {
+    line += ` (next in ${secs}s)`;
+  }
+  foreverLineEl.textContent = line;
+
+  const started = s.cycles || 0;
+  foreverMetricsEl.hidden = started === 0 && !s.active;
+  fmCyclesEl.textContent = started.toLocaleString();
+  fmRateEl.textContent = started
+    ? `${Math.round((s.cyclesSucceeded / started) * 100)}%  (${s.cyclesSucceeded}/${started})`
+    : '—';
+  fmTxEl.textContent = Number(s.txSubmitted || 0).toLocaleString();
+  fmTxFailedEl.textContent = Number(s.txFailed || 0).toLocaleString();
+  fmStreakEl.textContent = Number(s.consecutiveFailures || 0).toLocaleString();
+  fmNextEl.textContent = secs != null ? `${secs}s` : (s.active ? '—' : 'stopped');
+
+  if (s.lastError) {
+    foreverErrorEl.hidden = false;
+    foreverErrorEl.textContent = `Last error: ${s.lastError}`;
+  } else {
+    foreverErrorEl.hidden = true;
+  }
+
+  foreverBtn.textContent = s.active ? 'Stop' : 'Run Forever';
+  foreverBtn.classList.toggle('is-stop', !!s.active);
+}
+
+/* ---- incremental cycle-log data table ---- */
+
+const LOG_STATUS_LABEL = {
+  pending: 'Pending',
+  running: 'Running',
+  completed: 'Completed',
+  failed: 'Failed',
+};
+
+function logCells(entry, priceUsd) {
+  const accumMtv = Number(entry.cumulativeFeeMtv || 0);
+  const usd = priceUsd != null ? accumMtv * priceUsd : null;
+  const elapsedMs = entry.status === 'running' || entry.status === 'pending'
+    ? liveRuntimeMs()
+    : entry.runtimeMs;
+  return {
+    status: `<span class="log-badge ${entry.status}">${LOG_STATUS_LABEL[entry.status] || entry.status}</span>`,
+    batch: entry.id === 'pending' ? `#${entry.cycle}` : `#${entry.cycle}`,
+    cycles: entry.subBatches != null ? Number(entry.subBatches).toLocaleString() : '…',
+    fee: accumMtv.toFixed(6),
+    usd: usd != null ? formatUsd(usd) : '—',
+    elapsed: entry.id === 'pending'
+      ? (entry.pendingLabel || '…')
+      : fmtDuration(elapsedMs),
+    error: entry.error || '',
+  };
+}
+
+function makeLogRow(entry, priceUsd) {
+  const tr = document.createElement('tr');
+  tr.dataset.id = entry.id;
+  const c = logCells(entry, priceUsd);
+  tr.className = `log-${entry.status}`;
+  tr.innerHTML =
+    `<td>${c.status}</td>`
+    + `<td>${c.batch}</td>`
+    + `<td>${c.cycles}</td>`
+    + `<td>${c.fee}</td>`
+    + `<td>${c.usd}</td>`
+    + `<td>${c.elapsed}${c.error ? `<span class="log-err-cell">${escapeHtml(c.error)}</span>` : ''}</td>`;
+  return tr;
+}
+
+function patchLogRow(tr, entry, priceUsd) {
+  const c = logCells(entry, priceUsd);
+  if (tr.className !== `log-${entry.status}`) tr.className = `log-${entry.status}`;
+  const tds = tr.children;
+  if (tds[0].innerHTML !== c.status) tds[0].innerHTML = c.status;
+  if (tds[2].textContent !== c.cycles) tds[2].textContent = c.cycles;
+  if (tds[3].textContent !== c.fee) tds[3].textContent = c.fee;
+  if (tds[4].textContent !== c.usd) tds[4].textContent = c.usd;
+  const last = c.elapsed + (c.error ? `<span class="log-err-cell">${escapeHtml(c.error)}</span>` : '');
+  if (tds[5].innerHTML !== last) tds[5].innerHTML = last;
+}
+
+function liveRuntimeMs() {
+  const s = forever.snapshot;
+  if (!s || !s.startedAt) return s ? s.runtimeMs : 0;
+  if (!s.active) return s.runtimeMs;
+  return Date.now() - new Date(s.startedAt).getTime();
+}
+
+function renderForeverLogNow(s) {
+  if (!s) return;
+  const log = Array.isArray(s.cycleLog) ? s.cycleLog : [];
+
+  const show = log.length > 0 || s.active;
+  foreverLogEl.hidden = !show;
+  if (!show) {
+    foreverLogBodyEl.innerHTML = '';
+    foreverLog.rows.clear();
+    foreverLog.sessionKey = null;
+    return;
+  }
+
+  // New runner session -> drop the previous session's rows.
+  const key = s.startedAt || 'none';
+  if (key !== foreverLog.sessionKey) {
+    foreverLog.sessionKey = key;
+    foreverLog.rows.clear();
+    foreverLogBodyEl.innerHTML = '';
+    foreverLog.stick = true;
+  }
+
+  const priceUsd = s.priceUsd;
+  const seen = new Set();
+
+  // Real cycle rows, in chronological order.
+  for (const entry of log) {
+    seen.add(entry.id);
+    const existing = foreverLog.rows.get(entry.id);
+    if (existing) {
+      patchLogRow(existing, entry, priceUsd);
+    } else {
+      const tr = makeLogRow(entry, priceUsd);
+      foreverLogBodyEl.appendChild(tr);
+      foreverLog.rows.set(entry.id, tr);
+    }
+  }
+
+  // Optional trailing "pending" pseudo-row for the next cycle while waiting.
+  const pendingId = 'pending';
+  if (s.active && (s.phase === 'waiting' || s.phase === 'circuit_open')) {
+    const secs = foreverCountdown(s.nextRunAt);
+    const pendingEntry = {
+      id: pendingId,
+      cycle: (s.cycles || 0) + 1,
+      status: 'pending',
+      subBatches: null,
+      cumulativeFeeMtv: s.cumulativeFeeMtv || 0,
+      pendingLabel: secs != null ? `next in ${secs}s` : 'queued',
+    };
+    seen.add(pendingId);
+    const existing = foreverLog.rows.get(pendingId);
+    if (existing) {
+      patchLogRow(existing, pendingEntry, priceUsd);
+    } else {
+      const tr = makeLogRow(pendingEntry, priceUsd);
+      foreverLogBodyEl.appendChild(tr);
+      foreverLog.rows.set(pendingId, tr);
+    }
+  }
+
+  // Remove rows that no longer belong (pending row once its cycle starts,
+  // or old rows trimmed from the bounded server-side log).
+  for (const [id, tr] of foreverLog.rows) {
+    if (!seen.has(id)) {
+      tr.remove();
+      foreverLog.rows.delete(id);
+    }
+  }
+
+  // Footer: cumulative totals with unit-scaled runtime.
+  const cumMtv = Number(s.cumulativeFeeMtv || 0);
+  flFeeEl.textContent = `${cumMtv.toFixed(6)} MTV`;
+  flUsdEl.textContent = priceUsd != null
+    ? formatUsd(cumMtv * priceUsd) + (s.priceStale ? ' (cached rate)' : '')
+    : 'rate unavailable';
+  flRuntimeEl.textContent = fmtDuration(liveRuntimeMs());
+
+  // Failed cycles are surfaced separately without interrupting the listing.
+  const failures = log.filter((e) => e.status === 'failed');
+  if (failures.length) {
+    const lastErr = failures[failures.length - 1].error || 'unknown error';
+    foreverLogFailEl.hidden = false;
+    foreverLogFailEl.textContent =
+      `${failures.length} failed cycle${failures.length === 1 ? '' : 's'} · last: ${lastErr}`;
+  } else {
+    foreverLogFailEl.hidden = true;
+  }
+
+  if (foreverAutoScrollEl.checked && foreverLog.stick) {
+    foreverLogScrollEl.scrollTop = foreverLogScrollEl.scrollHeight;
+  }
+}
+
+/* Coalesce bursts of snapshots into one paint per animation frame so a
+ * fast interval (e.g. every 3s with many events) can't freeze the UI. */
+function scheduleForeverLogRender(s) {
+  foreverLog.queued = s;
+  if (foreverLog.rafId) return;
+  foreverLog.rafId = requestAnimationFrame(() => {
+    foreverLog.rafId = 0;
+    const snap = foreverLog.queued;
+    foreverLog.queued = null;
+    try {
+      renderForeverLogNow(snap);
+    } catch (err) {
+      console.error('cycle-log render failed', err);
+    }
+  });
+}
+
+/* Cheap per-second refresh of just the live-changing cells. */
+function tickForeverLog() {
+  const s = forever.snapshot;
+  if (!s || foreverLogEl.hidden) return;
+  const elapsed = fmtDuration(liveRuntimeMs());
+  flRuntimeEl.textContent = elapsed;
+  for (const [id, tr] of foreverLog.rows) {
+    if (id === 'pending') {
+      const secs = foreverCountdown(s.nextRunAt);
+      tr.children[5].textContent = secs != null ? `next in ${secs}s` : 'queued';
+    } else if (tr.className === 'log-running') {
+      tr.children[5].textContent = elapsed;
+    }
+  }
+}
+
+function applyForeverSnapshot(s) {
+  if (!s || typeof s !== 'object') return;
+  forever.snapshot = s;
+  // Keep the interval picker in sync when the server clamps/normalises it.
+  if (s.config && document.activeElement !== foreverIntervalEl
+      && document.activeElement !== foreverCustomEl) {
+    const iv = Number(s.config.intervalSeconds);
+    const preset = ['5', '10', '30', '60'];
+    if (preset.includes(String(iv))) {
+      foreverIntervalEl.value = String(iv);
+    } else {
+      foreverIntervalEl.value = 'custom';
+      foreverCustomEl.value = iv;
+    }
+    syncForeverCustomVisibility();
+  }
+  renderForever();
+  scheduleForeverLogRender(s);
+}
+
+async function startForever() {
+  const intervalSeconds = resolveForeverInterval();
+  const dryRun = foreverDryRunEl.checked;
+  const count = Math.max(1, Number(batchTotalEl.value) || 1000);
+  const batchSize = Math.max(1, Number(batchSizeEl.value) || 100);
+
+  if (!dryRun && !window.confirm(
+    `Run Forever will broadcast ${count} REAL transactions every ${intervalSeconds}s `
+    + 'until you press Stop. This spends MTV continuously. Continue?')) {
+    return;
+  }
+
+  foreverBtn.disabled = true;
+  try {
+    const s = await apiFetch('/api/forever/start', {
+      method: 'POST',
+      body: JSON.stringify({ intervalSeconds, count, batchSize, dryRun }),
+    });
+    applyForeverSnapshot(s);
+  } catch (error) {
+    foreverErrorEl.hidden = false;
+    foreverErrorEl.textContent = error.message || 'Failed to start Run Forever';
+  } finally {
+    foreverBtn.disabled = false;
+  }
+}
+
+async function stopForever() {
+  foreverBtn.disabled = true;
+  foreverBadgeEl.textContent = 'Stopping…';
+  foreverBadgeEl.className = 'forever-badge warn';
+  try {
+    const s = await apiFetch('/api/forever/stop', { method: 'POST' });
+    applyForeverSnapshot(s);
+  } catch (error) {
+    foreverErrorEl.hidden = false;
+    foreverErrorEl.textContent = error.message || 'Failed to stop Run Forever';
+  } finally {
+    foreverBtn.disabled = false;
+  }
+}
+
+async function pushForeverConfig() {
+  if (!forever.snapshot || !forever.snapshot.active) return;
+  try {
+    const s = await apiFetch('/api/forever/config', {
+      method: 'POST',
+      body: JSON.stringify({
+        intervalSeconds: resolveForeverInterval(),
+        dryRun: foreverDryRunEl.checked,
+      }),
+    });
+    applyForeverSnapshot(s);
+  } catch (error) {
+    console.error('Failed to update Run Forever config', error);
+  }
+}
+
+function connectForeverStream() {
+  if (typeof EventSource === 'undefined') return;
+  try {
+    if (forever.source) forever.source.close();
+    const source = new EventSource('/api/forever/stream');
+    forever.source = source;
+
+    source.addEventListener('forever', (event) => {
+      forever.streamConnected = true;
+      try {
+        applyForeverSnapshot(JSON.parse(event.data));
+      } catch (parseErr) {
+        console.error('Bad forever event', parseErr);
+      }
+    });
+
+    source.onopen = () => {
+      forever.streamConnected = true;
+      renderForever();
+    };
+
+    source.onerror = () => {
+      // EventSource retries on its own; reflect the gap in the UI and let
+      // the status poll keep numbers fresh until the stream is back.
+      forever.streamConnected = false;
+      renderForever();
+    };
+  } catch (error) {
+    console.error('Run Forever stream unavailable, using poll fallback', error);
+  }
+}
+
+async function pollForeverStatus() {
+  if (forever.streamConnected) return; // stream is authoritative when up
+  try {
+    const s = await apiFetch('/api/forever/status');
+    applyForeverSnapshot(s);
+  } catch (error) {
+    /* keep last-known snapshot */
+  }
+}
+
+try {
+  if (foreverBtn) {
+    syncForeverCustomVisibility();
+    foreverIntervalEl.addEventListener('change', () => {
+      syncForeverCustomVisibility();
+      pushForeverConfig();
+    });
+    foreverCustomEl.addEventListener('change', pushForeverConfig);
+    foreverDryRunEl.addEventListener('change', pushForeverConfig);
+    foreverBtn.addEventListener('click', () => {
+      if (forever.snapshot && forever.snapshot.active) stopForever();
+      else startForever();
+    });
+
+    // Track whether the user is pinned to the newest row; if they scroll up
+    // we stop auto-scrolling until they return to the bottom.
+    foreverLogScrollEl.addEventListener('scroll', () => {
+      const gap = foreverLogScrollEl.scrollHeight
+        - foreverLogScrollEl.scrollTop - foreverLogScrollEl.clientHeight;
+      foreverLog.stick = gap < 24;
+    });
+    foreverAutoScrollEl.addEventListener('change', () => {
+      if (foreverAutoScrollEl.checked) {
+        foreverLog.stick = true;
+        foreverLogScrollEl.scrollTop = foreverLogScrollEl.scrollHeight;
+      }
+    });
+
+    // Coming back to the tab: pull fresh state and repaint from the full
+    // snapshot so the log catches up on whatever ran while we were away.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        pollForeverStatus();
+        if (forever.snapshot) scheduleForeverLogRender(forever.snapshot);
+        if (!forever.streamConnected) connectForeverStream();
+      }
+    });
+
+    connectForeverStream();
+    pollForeverStatus();
+    setInterval(pollForeverStatus, 3000);
+    // Re-tick the countdown + live durations once a second off the last snapshot.
+    setInterval(() => {
+      if (!forever.snapshot) return;
+      renderForever();
+      tickForeverLog();
+    }, 1000);
+    // Reopen a stream that has been down for a while (belt and braces).
+    setInterval(() => {
+      if (!forever.streamConnected) connectForeverStream();
+    }, 15000);
+  }
+} catch (error) {
+  console.error('Run Forever panel init failed:', error);
+}

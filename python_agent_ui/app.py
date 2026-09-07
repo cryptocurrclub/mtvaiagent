@@ -1,9 +1,10 @@
 import asyncio
 import json
 import os
+import random
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from dotenv import load_dotenv
@@ -11,7 +12,7 @@ from eth_account import Account
 from eth_account.messages import encode_typed_data
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field, field_validator
@@ -37,6 +38,20 @@ COINGECKO_ID = os.getenv("COINGECKO_ID", "multivac")
 COINGECKO_API_KEY = os.getenv("COINGECKO_API_KEY", "").strip()
 PRICE_TTL_SECONDS = int(os.getenv("PRICE_TTL_SECONDS", "60"))
 GAS_PER_TX_FALLBACK = 21000
+
+# "Run Forever" background batch runner (asyncio task + SSE fan-out).
+FOREVER_MIN_INTERVAL_SECONDS = float(os.getenv("FOREVER_MIN_INTERVAL_SECONDS", "3"))
+FOREVER_MAX_INTERVAL_SECONDS = float(os.getenv("FOREVER_MAX_INTERVAL_SECONDS", "3600"))
+FOREVER_DEFAULT_INTERVAL_SECONDS = float(os.getenv("FOREVER_DEFAULT_INTERVAL_SECONDS", "10"))
+FOREVER_MAX_CYCLES = int(os.getenv("FOREVER_MAX_CYCLES", "0"))  # 0 = unlimited
+FOREVER_MAX_CONSECUTIVE_FAILURES = int(os.getenv("FOREVER_MAX_CONSECUTIVE_FAILURES", "5"))
+FOREVER_CIRCUIT_COOLDOWN_SECONDS = float(os.getenv("FOREVER_CIRCUIT_COOLDOWN_SECONDS", "60"))
+FOREVER_BACKOFF_BASE_SECONDS = float(os.getenv("FOREVER_BACKOFF_BASE_SECONDS", "2"))
+FOREVER_BACKOFF_CAP_SECONDS = float(os.getenv("FOREVER_BACKOFF_CAP_SECONDS", "60"))
+FOREVER_CYCLE_TIMEOUT_SECONDS = float(os.getenv("FOREVER_CYCLE_TIMEOUT_SECONDS", "300"))
+FOREVER_SSE_KEEPALIVE_SECONDS = float(os.getenv("FOREVER_SSE_KEEPALIVE_SECONDS", "15"))
+FOREVER_SSE_MAX_QUEUE = int(os.getenv("FOREVER_SSE_MAX_QUEUE", "64"))
+FOREVER_CYCLE_LOG_MAX = int(os.getenv("FOREVER_CYCLE_LOG_MAX", "200"))
 
 app = FastAPI(title=APP_NAME)
 app.add_middleware(
@@ -599,6 +614,478 @@ async def batch_run(payload: BatchRunRequest) -> dict[str, Any]:
         "dryRun": payload.dryRun,
         "message": "Batch run started. Poll /api/agent/last-run for live progress.",
     }
+
+
+# ---------------------------------------------------------------------------
+# "Run Forever" background batch runner
+#
+# Stack: FastAPI + a single asyncio.Task on the app event loop, streamed to
+# the browser over Server-Sent Events (text/event-stream). There is no
+# threading here, so shared state is async-safe by construction: every
+# mutation happens inside the loop coroutine or a request handler on the same
+# loop, and readers only ever take a snapshot() copy. The blocking web3 work
+# lives in the separate agent-server process and is reached only through
+# `await httpx.post(...)`, so this app stays responsive while a cycle runs.
+# ---------------------------------------------------------------------------
+
+
+def _iso_in(seconds: float) -> str:
+    return (datetime.now(timezone.utc) + timedelta(seconds=max(0.0, seconds))).isoformat()
+
+
+class ForeverRunner:
+    def __init__(self) -> None:
+        self._task: asyncio.Task | None = None
+        self._stop = asyncio.Event()
+        self._guard = asyncio.Lock()  # serialises start/stop
+        self._subscribers: set[asyncio.Queue] = set()
+        self.cfg: dict[str, Any] = {
+            "intervalSeconds": FOREVER_DEFAULT_INTERVAL_SECONDS,
+            "count": 1000,
+            "batchSize": 100,
+            "amountMtv": DEFAULT_AMOUNT_MTV,
+            "recipient": DEFAULT_RECIPIENT,
+            "dryRun": True,
+        }
+        self.stats: dict[str, Any] = {}
+        self._reset_stats()
+
+    def _reset_stats(self) -> None:
+        self._cumulative_fee_mtv = 0.0
+        self.stats = {
+            "active": False,
+            "phase": "idle",  # idle|submitting|waiting|backoff|circuit_open|stopping|stopped
+            "startedAt": None,
+            "stoppedAt": None,
+            "cycles": 0,
+            "cyclesSucceeded": 0,
+            "cyclesFailed": 0,
+            "txSubmitted": 0,
+            "txSkipped": 0,
+            "txFailed": 0,
+            "consecutiveFailures": 0,
+            "circuitOpen": False,
+            "circuitOpensCount": 0,
+            "nextRunAt": None,
+            "lastCycleAt": None,
+            "lastCycleMs": None,
+            "lastError": None,
+            "lastResult": None,
+            "cumulativeFeeMtv": 0.0,
+            "priceUsd": None,
+            "priceStale": False,
+            "priceSource": None,
+            # Per-cycle rows for the incremental "cycle log" data table.
+            "cycleLog": [],
+            "message": "Idle",
+        }
+
+    # ---- cycle log ---------------------------------------------------------
+    def _runtime_ms(self) -> int:
+        started = self.stats.get("startedAt")
+        if not started:
+            return 0
+        delta = datetime.now(timezone.utc) - datetime.fromisoformat(started)
+        return max(0, int(delta.total_seconds() * 1000))
+
+    def _log_cycle_start(self, cycle_no: int) -> dict[str, Any]:
+        entry = {
+            "cycle": cycle_no,
+            "id": f"cycle-{cycle_no}",
+            "status": "running",  # running | completed | failed
+            "subBatches": None,
+            "cycleFeeMtv": 0.0,
+            "cumulativeFeeMtv": self._cumulative_fee_mtv,
+            "txSubmitted": 0,
+            "txFailed": 0,
+            "txSkipped": 0,
+            "startedAt": datetime.now(timezone.utc).isoformat(),
+            "finishedAt": None,
+            "cycleMs": None,
+            "runtimeMs": self._runtime_ms(),
+            "error": None,
+        }
+        log: list[dict[str, Any]] = self.stats["cycleLog"]
+        log.append(entry)
+        if len(log) > FOREVER_CYCLE_LOG_MAX:
+            del log[: len(log) - FOREVER_CYCLE_LOG_MAX]
+        return entry
+
+    async def _refresh_price(self) -> None:
+        try:
+            info = await get_native_price_usd()
+            self.stats["priceUsd"] = info.get("usd")
+            self.stats["priceStale"] = bool(info.get("stale"))
+            self.stats["priceSource"] = info.get("source")
+        except Exception:  # noqa: BLE001 - price is best-effort
+            pass
+
+    # ---- SSE pub/sub -----------------------------------------------------
+    def subscribe(self) -> asyncio.Queue:
+        queue: asyncio.Queue = asyncio.Queue(maxsize=FOREVER_SSE_MAX_QUEUE)
+        self._subscribers.add(queue)
+        return queue
+
+    def unsubscribe(self, queue: asyncio.Queue) -> None:
+        self._subscribers.discard(queue)
+
+    def snapshot(self) -> dict[str, Any]:
+        stats = dict(self.stats)
+        # Deep-ish copy so a slow SSE consumer never serialises a row that is
+        # still being mutated by the loop.
+        stats["cycleLog"] = [dict(entry) for entry in self.stats.get("cycleLog", [])]
+        return {
+            **stats,
+            "runtimeMs": self._runtime_ms(),
+            "config": dict(self.cfg),
+            "subscribers": len(self._subscribers),
+            "limits": {
+                "minIntervalSeconds": FOREVER_MIN_INTERVAL_SECONDS,
+                "maxIntervalSeconds": FOREVER_MAX_INTERVAL_SECONDS,
+                "maxCycles": FOREVER_MAX_CYCLES,
+                "maxConsecutiveFailures": FOREVER_MAX_CONSECUTIVE_FAILURES,
+                "circuitCooldownSeconds": FOREVER_CIRCUIT_COOLDOWN_SECONDS,
+            },
+            "serverTime": datetime.now(timezone.utc).isoformat(),
+        }
+
+    def _publish(self) -> None:
+        snap = self.snapshot()
+        dead: list[asyncio.Queue] = []
+        for queue in list(self._subscribers):
+            try:
+                queue.put_nowait(snap)
+            except asyncio.QueueFull:
+                # Slow consumer: drop its oldest event and keep the newest.
+                try:
+                    queue.get_nowait()
+                    queue.put_nowait(snap)
+                except Exception:  # noqa: BLE001
+                    dead.append(queue)
+        for queue in dead:
+            self._subscribers.discard(queue)
+
+    def _set(self, **updates: Any) -> None:
+        self.stats.update(updates)
+        self._publish()
+
+    # ---- config -------------------------------------------------------
+    def apply_config(self, updates: dict[str, Any]) -> None:
+        if not updates:
+            return
+        interval = updates.get("intervalSeconds")
+        if interval is not None:
+            self.cfg["intervalSeconds"] = max(
+                FOREVER_MIN_INTERVAL_SECONDS,
+                min(FOREVER_MAX_INTERVAL_SECONDS, float(interval)),
+            )
+        for key in ("count", "batchSize"):
+            if updates.get(key) is not None:
+                self.cfg[key] = max(1, min(20000, int(updates[key])))
+        if updates.get("amountMtv") is not None:
+            self.cfg["amountMtv"] = float(updates["amountMtv"])
+        if updates.get("recipient"):
+            self.cfg["recipient"] = str(updates["recipient"])
+        if updates.get("dryRun") is not None:
+            self.cfg["dryRun"] = bool(updates["dryRun"])
+
+    # ---- lifecycle --------------------------------------------------------
+    async def start(self, updates: dict[str, Any]) -> dict[str, Any]:
+        async with self._guard:
+            self.apply_config(updates)
+            if self._task and not self._task.done():
+                self._set(message="Config updated; runner already active.")
+                return self.snapshot()
+            self._reset_stats()
+            self.stats.update(
+                {
+                    "active": True,
+                    "phase": "submitting",
+                    "startedAt": datetime.now(timezone.utc).isoformat(),
+                    "message": "Starting…",
+                }
+            )
+            await self._refresh_price()  # seed a rate for the USD column
+            self._stop.clear()
+            self._task = asyncio.create_task(self._loop())
+            self._publish()
+            return self.snapshot()
+
+    async def stop(self, timeout: float = 30.0) -> dict[str, Any]:
+        async with self._guard:
+            task = self._task
+            if not (task and not task.done()):
+                self._set(active=False, phase="stopped", nextRunAt=None,
+                          message="Runner is not active.")
+                return self.snapshot()
+            self._set(phase="stopping", message="Stop requested; finishing current cycle…")
+            self._stop.set()
+            try:
+                await asyncio.wait_for(asyncio.shield(task), timeout=timeout)
+            except asyncio.TimeoutError:
+                task.cancel()
+                try:
+                    await task
+                except (asyncio.CancelledError, Exception):  # noqa: BLE001
+                    pass
+            self._set(
+                active=False,
+                phase="stopped",
+                stoppedAt=datetime.now(timezone.utc).isoformat(),
+                nextRunAt=None,
+                message="Stopped.",
+            )
+            return self.snapshot()
+
+    async def _sleep_or_stop(self, seconds: float) -> bool:
+        """Sleep up to `seconds`; return True if a stop was requested meanwhile."""
+        if seconds <= 0:
+            return self._stop.is_set()
+        try:
+            await asyncio.wait_for(self._stop.wait(), timeout=seconds)
+            return True
+        except asyncio.TimeoutError:
+            return False
+
+    async def _run_cycle(self) -> dict[str, Any]:
+        amount = self.cfg["amountMtv"]
+        recipient = self.cfg["recipient"]
+        body = {
+            "prompt": f"send {amount} native MTV to {recipient}",
+            "walletAddress": recipient,
+            "chainId": CHAIN_ID,
+            "nonce": "forever-runner",
+            "signature": "forever-runner",
+            "batchCount": self.cfg["count"],
+            "batchSize": self.cfg["batchSize"],
+            "dryRun": self.cfg["dryRun"],
+        }
+        import httpx
+
+        async with httpx.AsyncClient(timeout=FOREVER_CYCLE_TIMEOUT_SECONDS) as client:
+            response = await client.post(
+                TARGET_AGENT_URL or "http://127.0.0.1:9000/trigger",
+                json=body,
+                headers={
+                    "Authorization": f"Bearer {AGENT_TRIGGER_TOKEN}",
+                    "Content-Type": "application/json",
+                },
+            )
+            response.raise_for_status()
+            return response.json()
+
+    async def _loop(self) -> None:
+        try:
+            while not self._stop.is_set():
+                # Circuit breaker: after N consecutive failures, cool down.
+                if self.stats["consecutiveFailures"] >= FOREVER_MAX_CONSECUTIVE_FAILURES:
+                    self._set(
+                        circuitOpen=True,
+                        phase="circuit_open",
+                        circuitOpensCount=self.stats["circuitOpensCount"] + 1,
+                        nextRunAt=_iso_in(FOREVER_CIRCUIT_COOLDOWN_SECONDS),
+                        message=(
+                            f"Circuit open after {self.stats['consecutiveFailures']} "
+                            f"consecutive failures; cooling down "
+                            f"{FOREVER_CIRCUIT_COOLDOWN_SECONDS:g}s."
+                        ),
+                    )
+                    if await self._sleep_or_stop(FOREVER_CIRCUIT_COOLDOWN_SECONDS):
+                        break
+                    self._set(circuitOpen=False, consecutiveFailures=0,
+                              message="Circuit reset; resuming.")
+
+                self.stats["cycles"] += 1
+                cycle_no = self.stats["cycles"]
+                entry = self._log_cycle_start(cycle_no)
+                await self._refresh_price()
+                self._set(phase="submitting", nextRunAt=None,
+                          message=f"Submitting cycle #{cycle_no}…")
+                started = time.perf_counter()
+                try:
+                    result = await self._run_cycle()
+                except Exception as exc:  # noqa: BLE001 - the loop must survive
+                    elapsed_ms = int((time.perf_counter() - started) * 1000)
+                    failures = self.stats["consecutiveFailures"] + 1
+                    backoff = min(
+                        FOREVER_BACKOFF_CAP_SECONDS,
+                        FOREVER_BACKOFF_BASE_SECONDS * (2 ** (failures - 1)),
+                    )
+                    backoff += random.uniform(0, backoff * 0.25)  # jitter
+                    # Record the failure as its own row without breaking the log.
+                    entry.update({
+                        "status": "failed",
+                        "finishedAt": datetime.now(timezone.utc).isoformat(),
+                        "cycleMs": elapsed_ms,
+                        "runtimeMs": self._runtime_ms(),
+                        "error": f"{type(exc).__name__}: {exc}",
+                    })
+                    self._set(
+                        phase="backoff",
+                        cyclesFailed=self.stats["cyclesFailed"] + 1,
+                        consecutiveFailures=failures,
+                        lastCycleAt=datetime.now(timezone.utc).isoformat(),
+                        lastCycleMs=elapsed_ms,
+                        lastError=f"{type(exc).__name__}: {exc}",
+                        nextRunAt=_iso_in(backoff),
+                        message=(
+                            f"Cycle #{cycle_no} failed ({failures} in a row); "
+                            f"retrying in {backoff:.1f}s."
+                        ),
+                    )
+                    if await self._sleep_or_stop(backoff):
+                        break
+                    continue
+
+                elapsed_ms = int((time.perf_counter() - started) * 1000)
+                sent = int(result.get("transactionCount") or 0)
+                skipped = int(result.get("skippedCount") or 0)
+                failed = int(result.get("failedCount") or 0)
+                cycle_fee_mtv = float(result.get("totalFeeMtv") or 0.0)
+                self._cumulative_fee_mtv += cycle_fee_mtv
+                entry.update({
+                    "status": "completed",
+                    "subBatches": result.get("batchCount"),
+                    "cycleFeeMtv": cycle_fee_mtv,
+                    "cumulativeFeeMtv": self._cumulative_fee_mtv,
+                    "txSubmitted": sent,
+                    "txFailed": failed,
+                    "txSkipped": skipped,
+                    "finishedAt": datetime.now(timezone.utc).isoformat(),
+                    "cycleMs": elapsed_ms,
+                    "runtimeMs": self._runtime_ms(),
+                })
+                self._set(
+                    phase="waiting",
+                    cyclesSucceeded=self.stats["cyclesSucceeded"] + 1,
+                    consecutiveFailures=0,
+                    circuitOpen=False,
+                    txSubmitted=self.stats["txSubmitted"] + sent,
+                    txSkipped=self.stats["txSkipped"] + skipped,
+                    txFailed=self.stats["txFailed"] + failed,
+                    cumulativeFeeMtv=self._cumulative_fee_mtv,
+                    lastCycleAt=datetime.now(timezone.utc).isoformat(),
+                    lastCycleMs=elapsed_ms,
+                    lastError=None,
+                    lastResult={
+                        "transactionCount": sent,
+                        "skippedCount": skipped,
+                        "failedCount": failed,
+                        "batchCount": result.get("batchCount"),
+                        "totalTimeSeconds": result.get("totalTimeSeconds"),
+                        "totalFeeMtv": result.get("totalFeeMtv"),
+                        "dryRun": result.get("dryRun", self.cfg["dryRun"]),
+                        "message": result.get("message"),
+                    },
+                    message=(
+                        f"Cycle #{cycle_no} ok: {sent} submitted"
+                        + (f", {failed} failed" if failed else "")
+                        + (f", {skipped} already known" if skipped else "")
+                    ),
+                )
+
+                if FOREVER_MAX_CYCLES and cycle_no >= FOREVER_MAX_CYCLES:
+                    self._set(message=f"Reached max cycles ({FOREVER_MAX_CYCLES}); stopping.")
+                    break
+
+                wait = self.cfg["intervalSeconds"]
+                self._set(phase="waiting", nextRunAt=_iso_in(wait),
+                          message=f"Waiting {wait:g}s until next cycle…")
+                if await self._sleep_or_stop(wait):
+                    break
+        except asyncio.CancelledError:
+            self.stats["message"] = "Stopped (cancelled)."
+            raise
+        finally:
+            self.stats.update(
+                {
+                    "active": False,
+                    "phase": "stopped",
+                    "stoppedAt": datetime.now(timezone.utc).isoformat(),
+                    "nextRunAt": None,
+                }
+            )
+            if not str(self.stats.get("message", "")).startswith(
+                ("Stopped", "Reached max", "Runner is not")
+            ):
+                self.stats["message"] = "Runner stopped."
+            self._publish()
+
+
+forever_runner = ForeverRunner()
+
+
+class ForeverStartRequest(BaseModel):
+    intervalSeconds: float | None = Field(default=None, ge=0.5, le=3600)
+    count: int | None = Field(default=None, ge=1, le=20000)
+    batchSize: int | None = Field(default=None, ge=1, le=20000)
+    amountMtv: float | None = None
+    recipient: str | None = None
+    dryRun: bool | None = None
+
+
+def _sse_pack(obj: dict[str, Any]) -> str:
+    return f"event: forever\ndata: {json.dumps(obj)}\n\n"
+
+
+@app.get("/api/forever/status")
+async def forever_status() -> dict[str, Any]:
+    return forever_runner.snapshot()
+
+
+@app.post("/api/forever/start")
+async def forever_start(payload: ForeverStartRequest) -> dict[str, Any]:
+    return await forever_runner.start(payload.model_dump(exclude_none=True))
+
+
+@app.post("/api/forever/config")
+async def forever_update_config(payload: ForeverStartRequest) -> dict[str, Any]:
+    forever_runner.apply_config(payload.model_dump(exclude_none=True))
+    forever_runner._publish()
+    return forever_runner.snapshot()
+
+
+@app.post("/api/forever/stop")
+async def forever_stop() -> dict[str, Any]:
+    return await forever_runner.stop()
+
+
+@app.get("/api/forever/stream")
+async def forever_stream(request: Request) -> StreamingResponse:
+    queue = forever_runner.subscribe()
+
+    async def event_gen():
+        try:
+            yield _sse_pack(forever_runner.snapshot())
+            while True:
+                if await request.is_disconnected():
+                    break
+                try:
+                    data = await asyncio.wait_for(
+                        queue.get(), timeout=FOREVER_SSE_KEEPALIVE_SECONDS
+                    )
+                    yield _sse_pack(data)
+                except asyncio.TimeoutError:
+                    yield ": keepalive\n\n"
+        except asyncio.CancelledError:
+            raise
+        finally:
+            forever_runner.unsubscribe(queue)
+
+    return StreamingResponse(
+        event_gen(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
+
+
+@app.on_event("shutdown")
+async def _forever_shutdown() -> None:
+    await forever_runner.stop(timeout=5.0)
 
 
 if __name__ == "__main__":

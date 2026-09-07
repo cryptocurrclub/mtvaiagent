@@ -1,6 +1,6 @@
 {
   "status": "done",
-  "dryRun": false,
+  "dryRun": true,
   "target": 1000,
   "submitted": 1000,
   "skipped": 0,
@@ -16,8 +16,8 @@
       "sent": 100,
       "skipped": 0,
       "failed": 0,
-      "timeSeconds": 11.796,
-      "firstHash": "0x5b3155e2dcb689e58afee24ea7c9f664bdd7c225ebcc995e849cfcb91400efa0",
+      "timeSeconds": 0.0,
+      "firstHash": "0xdryrun-nonce-52602",
       "feeTxCount": 100,
       "feeWei": "212819100618600000",
       "feeMtv": 0.2128191006186
@@ -28,8 +28,8 @@
       "sent": 100,
       "skipped": 0,
       "failed": 0,
-      "timeSeconds": 11.83,
-      "firstHash": "0x228005474ba8bcd73d6b25b6666831603e0ea3b44062eb930ba6504c61c216f3",
+      "timeSeconds": 0.0,
+      "firstHash": "0xdryrun-nonce-52702",
       "feeTxCount": 100,
       "feeWei": "212819100618600000",
       "feeMtv": 0.2128191006186
@@ -40,8 +40,8 @@
       "sent": 100,
       "skipped": 0,
       "failed": 0,
-      "timeSeconds": 11.732,
-      "firstHash": "0x30a65058d7615454e71b304e3700057472bbfc9814eca54463860c778d459a18",
+      "timeSeconds": 0.0,
+      "firstHash": "0xdryrun-nonce-52802",
       "feeTxCount": 100,
       "feeWei": "212819100618600000",
       "feeMtv": 0.2128191006186
@@ -52,8 +52,8 @@
       "sent": 100,
       "skipped": 0,
       "failed": 0,
-      "timeSeconds": 12.142,
-      "firstHash": "0x5a997e799c7d92c0a002c9ff33d698d4b38fa5fd33c8d4c8bfde792fbda861fd",
+      "timeSeconds": 0.0,
+      "firstHash": "0xdryrun-nonce-52902",
       "feeTxCount": 100,
       "feeWei": "212819100618600000",
       "feeMtv": 0.2128191006186
@@ -64,8 +64,8 @@
       "sent": 100,
       "skipped": 0,
       "failed": 0,
-      "timeSeconds": 11.837,
-      "firstHash": "0xf296a8daf1e1705ea6689b426347b8db10fcde1366aad985e87021b75001c6ba",
+      "timeSeconds": 0.0,
+      "firstHash": "0xdryrun-nonce-53002",
       "feeTxCount": 100,
       "feeWei": "212819100618600000",
       "feeMtv": 0.2128191006186
@@ -76,8 +76,8 @@
       "sent": 100,
       "skipped": 0,
       "failed": 0,
-      "timeSeconds": 14.928,
-      "firstHash": "0xcd607418e065b3bda8f74b6004629a3480ffdd619e1bfb0a9a8c71af66c1f29c",
+      "timeSeconds": 0.0,
+      "firstHash": "0xdryrun-nonce-53102",
       "feeTxCount": 100,
       "feeWei": "212819100618600000",
       "feeMtv": 0.2128191006186
@@ -88,8 +88,8 @@
       "sent": 100,
       "skipped": 0,
       "failed": 0,
-      "timeSeconds": 11.789,
-      "firstHash": "0xe057d5de82e0b7b34ed00686bbef1a23c57213e7d8b55417426fe2a5de360efe",
+      "timeSeconds": 0.0,
+      "firstHash": "0xdryrun-nonce-53202",
       "feeTxCount": 100,
       "feeWei": "212819100618600000",
       "feeMtv": 0.2128191006186
@@ -100,8 +100,8 @@
       "sent": 100,
       "skipped": 0,
       "failed": 0,
-      "timeSeconds": 11.787,
-      "firstHash": "0x31fe65a4cbbcaa319cecf8bd0de5d010c2fea69b500de6da50e4c81ce3f2d465",
+      "timeSeconds": 0.0,
+      "firstHash": "0xdryrun-nonce-53302",
       "feeTxCount": 100,
       "feeWei": "212819100618600000",
       "feeMtv": 0.2128191006186
@@ -112,8 +112,8 @@
       "sent": 100,
       "skipped": 0,
       "failed": 0,
-      "timeSeconds": 11.889,
-      "firstHash": "0x178ef676f3b0e4cd5c5868b2e8cdbf356764f5c30a292552de296f3a00bb8bc4",
+      "timeSeconds": 0.0,
+      "firstHash": "0xdryrun-nonce-53402",
       "feeTxCount": 100,
       "feeWei": "212819100618600000",
       "feeMtv": 0.2128191006186
@@ -124,17 +124,17 @@
       "sent": 100,
       "skipped": 0,
       "failed": 0,
-      "timeSeconds": 12.218,
-      "firstHash": "0x2fb1c2ae0ab1724d15f7a40f4b07e523c526c4f4785d1e34b25f5858cb644f7c",
+      "timeSeconds": 0.0,
+      "firstHash": "0xdryrun-nonce-53502",
       "feeTxCount": 100,
       "feeWei": "212819100618600000",
       "feeMtv": 0.2128191006186
     }
   ],
-  "startNonce": 44492,
+  "startNonce": 52602,
   "recipient": "0xa93065aeedce32b5792fddcc0c075e812bb01617",
   "amountMtv": 0.0001,
-  "totalTimeSeconds": 121.993,
+  "totalTimeSeconds": 0.012,
   "nativeSymbol": "MTV",
   "gasPerTx": 21000,
   "gasPriceWei": "101342428866",
@@ -144,5 +144,5 @@
   "totalFeeWei": "2128191006186000000",
   "totalFeeMtv": 2.128191006186,
   "source": "agent-server",
-  "updatedAt": "2026-09-07T20:53:18.275838+00:00"
+  "updatedAt": "2026-09-07T22:45:08.279402+00:00"
 }

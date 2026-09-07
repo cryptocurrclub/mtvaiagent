@@ -192,13 +192,58 @@ h3 {
   }
 }
 
+/* Submit-batches controls and the results table, side by side. */
+.batch-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+  margin: 4px 0 8px;
+  text-align: left;
+}
+
+.batch-submit-panel,
+.batch-results-panel {
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(9, 16, 27, 0.4);
+  min-width: 0;
+}
+
+.panel-title {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+@media (max-width: 760px) {
+  .batch-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
 .batch-controls {
   display: flex;
   flex-wrap: wrap;
   align-items: end;
-  justify-content: center;
   gap: 14px;
   margin-top: 6px;
+}
+
+.batch-submit-panel .batch-controls {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.batch-submit-panel .batch-controls input[type='number'] {
+  width: 100%;
+}
+
+.batch-submit-panel .batch-controls .primary-btn {
+  margin-top: 4px;
 }
 
 .batch-controls label {
@@ -224,6 +269,256 @@ h3 {
   color: var(--muted);
   font-size: 0.82rem;
   margin: 10px 0 0;
+}
+
+.forever-panel {
+  margin: 14px 0 4px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(9, 16, 27, 0.4);
+  text-align: left;
+}
+
+.forever-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+
+.forever-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.forever-controls select,
+.forever-controls input[type='number'] {
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(9, 16, 27, 0.55);
+  color: var(--text);
+  padding: 10px 12px;
+}
+
+.forever-controls .forever-check {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+#foreverBtn {
+  margin-left: auto;
+}
+
+#foreverBtn.is-stop {
+  background: linear-gradient(135deg, #ff8f6b, var(--red));
+  color: #1a0510;
+}
+
+.forever-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.forever-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.forever-badge.idle {
+  background: rgba(164, 184, 214, 0.16);
+  color: var(--muted);
+}
+
+.forever-badge.run {
+  background: rgba(57, 217, 138, 0.16);
+  color: var(--green);
+}
+
+.forever-badge.warn {
+  background: rgba(255, 191, 105, 0.16);
+  color: var(--amber);
+}
+
+.forever-badge.error {
+  background: rgba(255, 92, 122, 0.18);
+  color: var(--red);
+}
+
+.forever-line {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.forever-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px 16px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.forever-metrics div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.fm-label {
+  color: var(--muted);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.fm-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.forever-error {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 92, 122, 0.12);
+  color: var(--red);
+  font-size: 0.8rem;
+  word-break: break-word;
+}
+
+/* ---- Run Forever cycle log ---- */
+.forever-log {
+  margin: 16px 0 4px;
+  text-align: left;
+}
+
+.forever-log-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.forever-log-head h3 {
+  font-size: 0.95rem;
+}
+
+.forever-log-fail {
+  color: var(--red);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.forever-log-follow {
+  margin: 0 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.forever-log-scroll {
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  scroll-behavior: smooth;
+}
+
+.forever-log-table {
+  margin: 0;
+}
+
+.forever-log-table thead th {
+  position: sticky;
+  top: 0;
+  background: #12203a;
+  z-index: 2;
+}
+
+.forever-log-table tfoot td {
+  position: sticky;
+  bottom: 0;
+  background: #12203a;
+  font-weight: 700;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  font-variant-numeric: tabular-nums;
+}
+
+.forever-log-table tbody td {
+  font-variant-numeric: tabular-nums;
+}
+
+.forever-log-table tbody tr.log-running {
+  background: rgba(97, 218, 251, 0.07);
+}
+
+.forever-log-table tbody tr.log-failed {
+  background: rgba(255, 92, 122, 0.09);
+}
+
+.forever-log-table tbody tr.log-pending {
+  opacity: 0.6;
+}
+
+.log-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.log-badge::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.log-badge.pending { color: var(--muted); }
+.log-badge.running { color: var(--accent); }
+.log-badge.completed { color: var(--green); }
+.log-badge.failed { color: var(--red); }
+
+.log-badge.running::before {
+  animation: log-pulse 1s ease-in-out infinite;
+}
+
+@keyframes log-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.7); }
+}
+
+.log-err-cell {
+  display: block;
+  margin-top: 2px;
+  color: var(--red);
+  font-size: 0.72rem;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .batch-table-wrap {
