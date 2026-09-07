@@ -6,8 +6,10 @@
     "compile": "hardhat compile",
     "test": "hardhat test",
     "lint": "tsc --noEmit",
-    "agent": "ts-node scripts/send-mtv.ts",
+    "agent": "ts-node scripts/agent-loop.ts",
+    "agent:ai": "ts-node scripts/ai-agent.ts",
     "agent:send": "ts-node scripts/send-mtv.ts",
+    "agent:loop": "ts-node scripts/agent-loop.ts",
     "keys:generate": "ts-node scripts/generate-key.ts",
     "keys:validate": "ts-node scripts/validate-key.ts"
   },

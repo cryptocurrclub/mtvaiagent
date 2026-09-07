@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Agent Wallet UI</title>
+    <link rel="stylesheet" href="/static/styles.css?v=4" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Web3 Control Panel</p>
+          <h1>AI Agent Trigger</h1>
+        </div>
+        <button id="connectWalletBtn" class="primary-btn">Connect Wallet</button>
+      </header>
+
+      <section class="card counter-card">
+        <h2>Transactions Submitted</h2>
+        <div class="counter-value"><span id="txCount">0</span><span class="counter-target" id="txTarget">/ 0</span></div>
+        <div class="counter-bar"><div class="counter-bar-fill" id="txBarFill"></div></div>
+        <div id="txCountStatus" class="status-box idle">No batch run yet</div>
+
+        <div class="batch-controls">
+          <label>Total
+            <input id="batchTotal" type="number" min="1" max="20000" value="1000" />
+          </label>
+          <label>Batch size
+            <input id="batchSize" type="number" min="1" max="20000" value="100" />
+          </label>
+          <button id="runBatchBtn" class="primary-btn">Submit batches</button>
+        </div>
+        <p id="batchSummary" class="batch-summary">10 batches of 100</p>
+
+        <div class="batch-table-wrap">
+          <table class="batch-table">
+            <thead>
+              <tr><th>Batch</th><th>Requested</th><th>Sent</th><th>Skipped</th><th>Failed</th><th>Seconds</th></tr>
+            </thead>
+            <tbody id="batchTableBody">
+              <tr><td colspan="6" class="batch-empty">No batches yet</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <main class="grid">
+        <section class="card wallet-card">
+          <h2>Wallet</h2>
+          <div id="walletStatus" class="status-pill disconnected">Not connected</div>
+          <dl class="meta-list">
+            <div>
+              <dt>Address</dt>
+              <dd id="walletAddress">—</dd>
+            </div>
+            <div>
+              <dt>Network</dt>
+              <dd id="networkInfo">—</dd>
+            </div>
+            <div>
+              <dt>Balance</dt>
+              <dd id="walletBalance">—</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="card agent-card">
+          <h2>Agent</h2>
+          <label for="agentPrompt">Prompt</label>
+          <textarea id="agentPrompt" rows="6" placeholder="Example: Send a safe summary of current market conditions and request an action plan."></textarea>
+          <div class="button-row">
+            <button id="authenticateBtn" class="secondary-btn">Authenticate</button>
+            <button id="triggerBtn" class="primary-btn" disabled>Trigger Agent</button>
+          </div>
+        </section>
+      </main>
+
+      <section class="card txn-card">
+        <h2>Transaction & Response</h2>
+        <div id="transactionStatus" class="status-box idle">Waiting for wallet connection</div>
+        <div class="job-status-box">
+          <h3>Batch Job Status</h3>
+          <div id="jobStatus" class="status-box idle">Idle</div>
+        </div>
+        <div class="response-box">
+          <h3>Agent Output</h3>
+          <pre id="agentResponse">No response yet.</pre>
+        </div>
+      </section>
+    </div>
+
+    <script src="/static/app.js?v=4"></script>
+  </body>
+</html>

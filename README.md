@@ -1,8 +1,8 @@
 # MTV AI Agent
 
-This project is a lightweight MultiVAC transaction utility for sending native MTV from a configured wallet to a recipient address. It is intentionally focused on one production workflow: validate the wallet and target address, estimate gas, broadcast a signed native transfer, and wait for confirmation.
+This project is a constrained AI-assisted MultiVAC transaction agent for sending native MTV from a configured wallet to a recipient address. The AI interprets a natural-language instruction into a structured plan; deterministic local validation and the transaction loop control what can actually be sent.
 
-The current implementation does not run a long-lived agent loop or autonomous tool planner. Instead, it exposes a CLI that reads environment configuration, validates inputs, and performs a real network transaction with clear error handling.
+The AI does not receive the private key and cannot directly sign or submit transactions. It may only propose native MTV transfer parameters. The local runtime validates that plan before invoking the transaction loop.
 
 ## Overview
 
@@ -29,6 +29,9 @@ The actual code currently supports:
 - fallback from dynamic-fee transactions to legacy `gasPrice` transactions for networks that reject typed transactions
 - receipt monitoring and confirmation status reporting
 - clear error messages for invalid configuration, invalid addresses, insufficient balance, and RPC failures
+- natural-language planning through an OpenAI-compatible chat-completions endpoint
+- strict local validation that rejects unsupported token types and malformed AI plans
+- continuous execution with retry limits, cooldowns, operator stop controls, and JSONL audit logging
 
 ## Architecture
 
@@ -38,6 +41,8 @@ The real implementation lives in the following files:
 
 - `src/sendMtv.ts` — core send logic, validation, fee estimation, transaction creation, confirmation handling
 - `scripts/send-mtv.ts` — CLI entry point that reads env/config values and executes a transfer
+- `scripts/ai-agent.ts` — AI planning entry point followed by local validation and continuous execution
+- `src/aiAgent.ts` — model request, structured plan parsing, and policy validation
 - `scripts/generate-key.ts` — generates a new wallet private key for use with `DEPLOYER_PRIVATE_KEY`
 - `scripts/validate-key.ts` — validates a configured private key before sending
 - `docs/env.production.example` — production-ready environment template
@@ -78,7 +83,7 @@ export async function sendMtv(config: SendMtvConfig): Promise<SendMtvResult> {
 
 ### Legacy contracts in the repo
 
-The repository still contains Solidity contracts under `contracts/` such as `TreasuryManager.sol`, `AgentOracle.sol`, `CrossShardGateway.sol`, and `LiquidityRouter.sol`. Those files are part of an earlier or broader agent design, but the active CLI and documented runtime path in this repo is the single-purpose MTV sending flow implemented in `src/sendMtv.ts`.
+The repository still contains Solidity contracts under `contracts/` such as `TreasuryManager.sol`, `AgentOracle.sol`, `CrossShardGateway.sol`, and `LiquidityRouter.sol`. Those files are part of an earlier or broader design; the active runtime uses the native MTV sender and the constrained AI planner.
 
 ## Configuration
 
@@ -144,7 +149,7 @@ This checks that the key is in the required format and derives the wallet addres
 
 ## Usage
 
-### Send MTV using environment variables
+### Run the continuous sender
 
 Set the values in a `.env` file and run:
 
@@ -152,7 +157,11 @@ Set the values in a `.env` file and run:
 npm run agent
 ```
 
-If `TARGET_ADDRESS` and `AMOUNT_MTV` are set in the environment, the script uses those values. Otherwise, pass them as arguments.
+This starts the continuous sender. It sends one confirmed transaction, then starts the next identical transaction. Stop it with `Ctrl+C` or by setting `STOP_LOOP=1` in the process environment. Use `npm run agent:send` for a single transaction.
+
+### Send one transaction
+
+If `TARGET_ADDRESS` and `AMOUNT_MTV` are set in the environment, the single-send script uses those values. Otherwise, pass them as arguments.
 
 ### Send MTV with explicit arguments
 
@@ -214,7 +223,7 @@ The actual send flow is implemented as a single, deterministic control loop:
 10. If the RPC rejects it because typed transactions are unsupported, retry with a legacy `gasPrice` transaction.
 11. Wait for the receipt and report status.
 
-This loop intentionally avoids broad automation and keeps validation and failure modes explicit.
+The loop keeps transaction execution deterministic after the AI plan has been validated.
 
 ## Supported integrations and external APIs
 
@@ -225,7 +234,7 @@ The project integrates with:
 - Ethers v6 transaction signing and confirmation logic
 - Hardhat for compilation and testing of the Solidity artifacts in `contracts/`
 
-The current runtime path does not depend on any external AI or orchestration API; it is a direct wallet-to-network transaction tool.
+The optional AI runtime uses an OpenAI-compatible chat-completions API only for planning. Wallet signing and transaction submission remain local.
 
 ## Security model
 
@@ -237,6 +246,8 @@ This project takes the following security measures:
 - target addresses are validated before sending
 - insufficient balance is rejected before broadcast
 - network-specific fee compatibility is handled with a fallback mechanism
+- AI responses are parsed as structured data and restricted to native MTV transfers
+- the AI request never includes `DEPLOYER_PRIVATE_KEY`
 
 ## Development notes
 
@@ -262,12 +273,12 @@ npm run compile
 
 ## Contribution guidelines
 
-1. Keep the runtime focused on the current single-purpose functionality.
-2. Do not reintroduce stale “agent planner” behavior unless the code and docs are updated together.
+1. Keep the runtime focused on constrained native MTV transfers.
+2. Preserve the boundary between AI planning and local signing.
 3. Preserve private-key safety rules.
 4. Validate all new runtime code with `npx tsc --noEmit`.
 5. Update README and env examples whenever configuration or behavior changes.
 
 ## Summary
 
-The project is currently a secure, single-purpose MTV transfer CLI for MultiVAC networks. It does not implement a general-purpose autonomous agent with planning, memory, or tool orchestration. Instead, it provides a robust transaction utility with validation, safe key handling, network compatibility fallback, and confirmation monitoring.
+The project is a secure, constrained AI-assisted MTV transfer agent for MultiVAC networks. It uses AI for natural-language planning, then relies on deterministic local validation, signing, retry controls, cooldowns, stop handling, and confirmation monitoring.
