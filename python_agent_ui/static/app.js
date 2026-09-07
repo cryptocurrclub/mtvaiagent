@@ -21,6 +21,24 @@ const agentPromptEl = document.getElementById('agentPrompt');
 function setWalletStatus(label, type = 'disconnected') {
   walletStatusEl.textContent = label;
   walletStatusEl.className = `status-pill ${type}`;
+  updateConnectButton();
+}
+
+function shortAddress(address) {
+  if (!address) return '';
+  return `${address.slice(0, 6)}…${address.slice(-4)}`;
+}
+
+function updateConnectButton() {
+  if (state.account) {
+    connectWalletBtn.textContent = `Connected to ${shortAddress(state.account)}`;
+    connectWalletBtn.classList.add('is-connected');
+    connectWalletBtn.title = state.account;
+  } else {
+    connectWalletBtn.textContent = 'Connect Wallet';
+    connectWalletBtn.classList.remove('is-connected');
+    connectWalletBtn.removeAttribute('title');
+  }
 }
 
 function setTxStatus(message, type = 'idle') {

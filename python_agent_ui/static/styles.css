@@ -343,6 +343,19 @@ h3 {
   transform: none;
 }
 
+#connectWalletBtn {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#connectWalletBtn.is-connected {
+  background: rgba(57, 217, 138, 0.16);
+  color: var(--green);
+  font-weight: 600;
+}
+
 .status-pill,
 .status-box {
   display: inline-flex;
