@@ -4,14 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AI Agent Wallet UI</title>
-    <link rel="stylesheet" href="/static/styles.css?v=4" />
+    <link rel="stylesheet" href="/static/styles.css?v=11" />
   </head>
   <body>
     <div class="app-shell">
       <header class="topbar">
-        <div>
-          <p class="eyebrow">Web3 Control Panel</p>
-          <h1>AI Agent Trigger</h1>
+        <div class="brand">
+          <img src="/static/logo.png" alt="MultiVAC logo" class="brand-logo" />
+          <div>
+            <p class="eyebrow">Web3 Control Panel</p>
+            <h1>Multivac AI Agent</h1>
+          </div>
         </div>
         <button id="connectWalletBtn" class="primary-btn">Connect Wallet</button>
       </header>
@@ -21,6 +24,19 @@
         <div class="counter-value"><span id="txCount">0</span><span class="counter-target" id="txTarget">/ 0</span></div>
         <div class="counter-bar"><div class="counter-bar-fill" id="txBarFill"></div></div>
         <div id="txCountStatus" class="status-box idle">No batch run yet</div>
+
+        <div class="fees-panel" id="feesPanel">
+          <div class="fees-item">
+            <span class="fees-label">Total network fees</span>
+            <span class="fees-native" id="feesNative">—</span>
+          </div>
+          <div class="fees-divider" aria-hidden="true">≈</div>
+          <div class="fees-item">
+            <span class="fees-label">Estimated USD</span>
+            <span class="fees-usd" id="feesUsd">—</span>
+          </div>
+          <div class="fees-meta" id="feesMeta">Price via CoinGecko</div>
+        </div>
 
         <div class="batch-controls">
           <label>Total
@@ -36,12 +52,28 @@
         <div class="batch-table-wrap">
           <table class="batch-table">
             <thead>
-              <tr><th>Batch</th><th>Requested</th><th>Sent</th><th>Skipped</th><th>Failed</th><th>Seconds</th></tr>
+              <tr><th>Batch</th><th>Requested</th><th>Sent</th><th>Skipped</th><th>Failed</th><th>Seconds</th><th>Fees (MTV)</th><th>≈ USD</th></tr>
             </thead>
             <tbody id="batchTableBody">
-              <tr><td colspan="6" class="batch-empty">No batches yet</td></tr>
+              <tr><td colspan="8" class="batch-empty">No batches yet</td></tr>
             </tbody>
           </table>
+        </div>
+
+        <div class="batch-pagination" id="batchPagination" hidden>
+          <label>Rows
+            <select id="batchPageSize">
+              <option value="10" selected>10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </label>
+          <div class="batch-pagination-nav">
+            <button id="batchPrevBtn" class="secondary-btn" type="button">Prev</button>
+            <span id="batchPageInfo">Page 1 of 1</span>
+            <button id="batchNextBtn" class="secondary-btn" type="button">Next</button>
+          </div>
         </div>
       </section>
 
@@ -90,6 +122,6 @@
       </section>
     </div>
 
-    <script src="/static/app.js?v=4"></script>
+    <script src="/static/app.js?v=8"></script>
   </body>
 </html>

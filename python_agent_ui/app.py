@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import time
 import uuid
 from datetime import datetime, timezone
 from typing import Any
@@ -26,6 +27,16 @@ TARGET_AGENT_URL = os.getenv("TARGET_AGENT_URL", "")
 AGENT_API_KEY = os.getenv("AGENT_API_KEY", "")
 SESSION_SECRET = os.getenv("SESSION_SECRET", "dev-secret")
 APP_NAME = os.getenv("APP_NAME", "AI Agent Wallet UI")
+
+# Native token + CoinGecko price lookup for fee conversion to USD.
+NATIVE_SYMBOL = os.getenv("NATIVE_SYMBOL", "MTV")
+COINGECKO_PRICE_URL = os.getenv(
+    "COINGECKO_PRICE_URL", "https://api.coingecko.com/api/v3/simple/price"
+)
+COINGECKO_ID = os.getenv("COINGECKO_ID", "multivac")
+COINGECKO_API_KEY = os.getenv("COINGECKO_API_KEY", "").strip()
+PRICE_TTL_SECONDS = int(os.getenv("PRICE_TTL_SECONDS", "60"))
+GAS_PER_TX_FALLBACK = 21000
 
 app = FastAPI(title=APP_NAME)
 app.add_middleware(
@@ -175,7 +186,7 @@ async def run_agent_job(job_id: str, payload: dict[str, Any]) -> None:
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request) -> HTMLResponse:
-    return base_templates.TemplateResponse("index.html", {"request": request})
+    return base_templates.TemplateResponse(request, "index.html")
 
 
 @app.get("/health")
@@ -349,13 +360,166 @@ DEFAULT_RECIPIENT = os.getenv("TARGET_ADDRESS", "0xa93065aeedce32b5792fddcc0c075
 DEFAULT_AMOUNT_MTV = float(os.getenv("AMOUNT_MTV", "0.0001"))
 
 
+_price_cache: dict[str, Any] = {"usd": None, "fetched_at": 0.0, "source": None}
+
+
+async def get_native_price_usd() -> dict[str, Any]:
+    """Return the native token price in USD from CoinGecko, cached in-process.
+
+    Falls back to the last known price (flagged stale) if a refresh fails, and
+    to a null price if CoinGecko has never answered this process.
+    """
+    now = time.time()
+    age = now - _price_cache["fetched_at"]
+    if _price_cache["usd"] is not None and age < PRICE_TTL_SECONDS:
+        return {
+            "usd": _price_cache["usd"],
+            "source": _price_cache["source"],
+            "stale": False,
+            "ageSeconds": round(age, 1),
+            "error": None,
+        }
+
+    try:
+        import httpx
+
+        params = {"ids": COINGECKO_ID, "vs_currencies": "usd"}
+        headers = {"accept": "application/json"}
+        if COINGECKO_API_KEY:
+            headers["x-cg-demo-api-key"] = COINGECKO_API_KEY
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            resp = await client.get(COINGECKO_PRICE_URL, params=params, headers=headers)
+            resp.raise_for_status()
+            data = resp.json()
+        usd = data.get(COINGECKO_ID, {}).get("usd")
+        if usd is None:
+            raise ValueError(
+                f"CoinGecko returned no USD price for id '{COINGECKO_ID}'"
+            )
+        _price_cache.update({"usd": float(usd), "fetched_at": now, "source": "coingecko"})
+        return {"usd": float(usd), "source": "coingecko", "stale": False, "ageSeconds": 0.0, "error": None}
+    except Exception as exc:  # network error, rate limit, bad id, ...
+        if _price_cache["usd"] is not None:
+            return {
+                "usd": _price_cache["usd"],
+                "source": _price_cache["source"],
+                "stale": True,
+                "ageSeconds": round(now - _price_cache["fetched_at"], 1),
+                "error": str(exc),
+            }
+        return {"usd": None, "source": None, "stale": True, "ageSeconds": None, "error": str(exc)}
+
+
+def _compute_fee_summary(run: dict[str, Any], price_info: dict[str, Any]) -> dict[str, Any]:
+    symbol = run.get("nativeSymbol") or NATIVE_SYMBOL
+    gas_per_tx = int(run.get("gasPerTx") or GAS_PER_TX_FALLBACK)
+    tx_count = int(run.get("feeTxCount") or run.get("submitted") or 0)
+    gas_price_wei_raw = run.get("gasPriceWei")
+
+    total_fee_wei: int | None
+    if run.get("totalFeeWei") is not None:
+        total_fee_wei = int(run["totalFeeWei"])
+    elif gas_price_wei_raw is not None:
+        total_fee_wei = tx_count * gas_per_tx * int(gas_price_wei_raw)
+    else:
+        total_fee_wei = None
+
+    total_fee_native = (
+        float(Web3.from_wei(total_fee_wei, "ether")) if total_fee_wei is not None else None
+    )
+    gas_price_gwei = (
+        float(Web3.from_wei(int(gas_price_wei_raw), "gwei"))
+        if gas_price_wei_raw is not None
+        else None
+    )
+    price_usd = price_info.get("usd")
+    total_fee_usd = (
+        total_fee_native * price_usd
+        if (total_fee_native is not None and price_usd is not None)
+        else None
+    )
+    fee_per_tx_native = (
+        float(Web3.from_wei(gas_per_tx * int(gas_price_wei_raw), "ether"))
+        if gas_price_wei_raw is not None
+        else None
+    )
+
+    return {
+        "nativeSymbol": symbol,
+        "txCount": tx_count,
+        "gasPerTx": gas_per_tx,
+        "gasPriceWei": str(gas_price_wei_raw) if gas_price_wei_raw is not None else None,
+        "gasPriceGwei": gas_price_gwei,
+        "feePerTxNative": fee_per_tx_native,
+        "totalFeeWei": str(total_fee_wei) if total_fee_wei is not None else None,
+        "totalFeeNative": total_fee_native,
+        "priceUsd": price_usd,
+        "totalFeeUsd": total_fee_usd,
+        "priceSource": price_info.get("source"),
+        "priceStale": price_info.get("stale", False),
+        "priceAgeSeconds": price_info.get("ageSeconds"),
+        "priceError": price_info.get("error"),
+    }
+
+
+def _enrich_batches_with_fees(run: dict[str, Any], price_info: dict[str, Any]) -> None:
+    """Add per-batch network fee (native + USD) to each row of run['batches']."""
+    batches = run.get("batches")
+    if not isinstance(batches, list):
+        return
+
+    gas_per_tx = int(run.get("gasPerTx") or GAS_PER_TX_FALLBACK)
+    run_gas_price_wei = run.get("gasPriceWei")
+    price_usd = price_info.get("usd")
+
+    for batch in batches:
+        if not isinstance(batch, dict):
+            continue
+        fee_wei = batch.get("feeWei")
+        if fee_wei is not None:
+            fee_wei_int = int(fee_wei)
+        else:
+            gas_price_wei = batch.get("gasPriceWei") or run_gas_price_wei
+            if gas_price_wei is None:
+                continue
+            fee_tx_count = int(
+                batch.get("feeTxCount")
+                if batch.get("feeTxCount") is not None
+                else (batch.get("sent") or 0) + (batch.get("skipped") or 0)
+            )
+            fee_wei_int = fee_tx_count * gas_per_tx * int(gas_price_wei)
+
+        fee_native = float(Web3.from_wei(fee_wei_int, "ether"))
+        batch["feeNative"] = fee_native
+        batch["feeUsd"] = fee_native * price_usd if price_usd is not None else None
+
+
+@app.get("/api/price")
+async def native_price() -> dict[str, Any]:
+    info = await get_native_price_usd()
+    return {
+        "id": COINGECKO_ID,
+        "symbol": NATIVE_SYMBOL,
+        "usd": info.get("usd"),
+        "source": info.get("source"),
+        "stale": info.get("stale", False),
+        "ageSeconds": info.get("ageSeconds"),
+        "error": info.get("error"),
+    }
+
+
 @app.get("/api/agent/last-run")
 async def last_run() -> dict[str, Any]:
     try:
         with open(LAST_RUN_FILE) as fh:
-            return json.load(fh)
+            run = json.load(fh)
     except (FileNotFoundError, json.JSONDecodeError):
         return {"status": "none", "submitted": 0, "target": 0}
+
+    price_info = await get_native_price_usd()
+    run["fees"] = _compute_fee_summary(run, price_info)
+    _enrich_batches_with_fees(run, price_info)
+    return run
 
 
 class BatchRunRequest(BaseModel):

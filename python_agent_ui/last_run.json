@@ -1,14 +1,14 @@
 {
   "status": "done",
   "dryRun": false,
-  "target": 10000,
-  "submitted": 10000,
+  "target": 1000,
+  "submitted": 1000,
   "skipped": 0,
   "failed": 0,
   "firstError": null,
-  "batchCount": 100,
+  "batchCount": 10,
   "batchSize": 100,
-  "batchesDone": 100,
+  "batchesDone": 10,
   "batches": [
     {
       "batch": 1,
@@ -16,8 +16,11 @@
       "sent": 100,
       "skipped": 0,
       "failed": 0,
-      "timeSeconds": 13.251,
-      "firstHash": "0xeeb5c42ae023c80c2b6502ccc7777a8c7ae357f3bed87aa852e347a5ea729909"
+      "timeSeconds": 11.796,
+      "firstHash": "0x5b3155e2dcb689e58afee24ea7c9f664bdd7c225ebcc995e849cfcb91400efa0",
+      "feeTxCount": 100,
+      "feeWei": "212819100618600000",
+      "feeMtv": 0.2128191006186
     },
     {
       "batch": 2,
@@ -25,8 +28,11 @@
       "sent": 100,
       "skipped": 0,
       "failed": 0,
-      "timeSeconds": 13.596,
-      "firstHash": "0xcaf5c5234d1e2871f4dd1833ff61fc33ad3e54dfa6064ca4f23e90df6865684d"
+      "timeSeconds": 11.83,
+      "firstHash": "0x228005474ba8bcd73d6b25b6666831603e0ea3b44062eb930ba6504c61c216f3",
+      "feeTxCount": 100,
+      "feeWei": "212819100618600000",
+      "feeMtv": 0.2128191006186
     },
     {
       "batch": 3,
@@ -34,8 +40,11 @@
       "sent": 100,
       "skipped": 0,
       "failed": 0,
-      "timeSeconds": 11.439,
-      "firstHash": "0x3f0f086b1557516924d188b10f5b442e7495c792d862c222822319ff3072afb0"
+      "timeSeconds": 11.732,
+      "firstHash": "0x30a65058d7615454e71b304e3700057472bbfc9814eca54463860c778d459a18",
+      "feeTxCount": 100,
+      "feeWei": "212819100618600000",
+      "feeMtv": 0.2128191006186
     },
     {
       "batch": 4,
@@ -43,8 +52,11 @@
       "sent": 100,
       "skipped": 0,
       "failed": 0,
-      "timeSeconds": 12.386,
-      "firstHash": "0x526feaa952f1f4515b37d69e6707d14725f465f1c5b43949cd19c3719308c7f0"
+      "timeSeconds": 12.142,
+      "firstHash": "0x5a997e799c7d92c0a002c9ff33d698d4b38fa5fd33c8d4c8bfde792fbda861fd",
+      "feeTxCount": 100,
+      "feeWei": "212819100618600000",
+      "feeMtv": 0.2128191006186
     },
     {
       "batch": 5,
@@ -52,8 +64,11 @@
       "sent": 100,
       "skipped": 0,
       "failed": 0,
-      "timeSeconds": 10.951,
-      "firstHash": "0x6e24c5fa53efab6c707693234eb28695a86428bdd3cdb1aebbaf26bc75cf9ca9"
+      "timeSeconds": 11.837,
+      "firstHash": "0xf296a8daf1e1705ea6689b426347b8db10fcde1366aad985e87021b75001c6ba",
+      "feeTxCount": 100,
+      "feeWei": "212819100618600000",
+      "feeMtv": 0.2128191006186
     },
     {
       "batch": 6,
@@ -61,8 +76,11 @@
       "sent": 100,
       "skipped": 0,
       "failed": 0,
-      "timeSeconds": 13.295,
-      "firstHash": "0xe006b09b63dc0bfe39672000806456848fb7486a191503041bffe4ac44b9e3b3"
+      "timeSeconds": 14.928,
+      "firstHash": "0xcd607418e065b3bda8f74b6004629a3480ffdd619e1bfb0a9a8c71af66c1f29c",
+      "feeTxCount": 100,
+      "feeWei": "212819100618600000",
+      "feeMtv": 0.2128191006186
     },
     {
       "batch": 7,
@@ -70,8 +88,11 @@
       "sent": 100,
       "skipped": 0,
       "failed": 0,
-      "timeSeconds": 13.222,
-      "firstHash": "0xb51ae8a9e41702a0cb294716b7561a08e68720974fb5bd07aad7583160e59b34"
+      "timeSeconds": 11.789,
+      "firstHash": "0xe057d5de82e0b7b34ed00686bbef1a23c57213e7d8b55417426fe2a5de360efe",
+      "feeTxCount": 100,
+      "feeWei": "212819100618600000",
+      "feeMtv": 0.2128191006186
     },
     {
       "batch": 8,
@@ -79,8 +100,11 @@
       "sent": 100,
       "skipped": 0,
       "failed": 0,
-      "timeSeconds": 12.81,
-      "firstHash": "0x200d5c20a67544dda4319c9d0c5d5333dd6f788f6fd0efa617217571ecfad8b0"
+      "timeSeconds": 11.787,
+      "firstHash": "0x31fe65a4cbbcaa319cecf8bd0de5d010c2fea69b500de6da50e4c81ce3f2d465",
+      "feeTxCount": 100,
+      "feeWei": "212819100618600000",
+      "feeMtv": 0.2128191006186
     },
     {
       "batch": 9,
@@ -88,8 +112,11 @@
       "sent": 100,
       "skipped": 0,
       "failed": 0,
-      "timeSeconds": 13.32,
-      "firstHash": "0xabc528cbd9d7b739168984f040306af706abd86c52cd76dd7c7ff83cce625b84"
+      "timeSeconds": 11.889,
+      "firstHash": "0x178ef676f3b0e4cd5c5868b2e8cdbf356764f5c30a292552de296f3a00bb8bc4",
+      "feeTxCount": 100,
+      "feeWei": "212819100618600000",
+      "feeMtv": 0.2128191006186
     },
     {
       "batch": 10,
@@ -97,824 +124,25 @@
       "sent": 100,
       "skipped": 0,
       "failed": 0,
-      "timeSeconds": 13.236,
-      "firstHash": "0xfaf64aefefa433daf93fc9034ec1c3db873f5e0092d9edd1f41a696c57adf542"
-    },
-    {
-      "batch": 11,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.083,
-      "firstHash": "0x74169c7b815156189bfb3bd3f382ea753e75542c7932c094dc8aea079ce60bef"
-    },
-    {
-      "batch": 12,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.444,
-      "firstHash": "0x9efa433ca0139527cd98dc18032360a8a9766fd6e3dc82b07b53a8eb8bbcfeaa"
-    },
-    {
-      "batch": 13,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 12.883,
-      "firstHash": "0xd7d4eb595c13e9142f6d49fbfb67915ac06e607c7cdf670aa118f81ac0e63b42"
-    },
-    {
-      "batch": 14,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 12.745,
-      "firstHash": "0xa2fd6bba24aa694bee10f69718ed0e2ddd12de1f75a2a3c244a84a17d5b9cb9a"
-    },
-    {
-      "batch": 15,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.589,
-      "firstHash": "0x1ff456b91fa894e2b8af3f7e7bc412a6e3ef311cdcf1c467792f2a8f7a4758dd"
-    },
-    {
-      "batch": 16,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 12.969,
-      "firstHash": "0x8dcfcd50d1bbfa1536b58237fef95d5f2aae3c2d7ec4a7789c2d599ef7b15e92"
-    },
-    {
-      "batch": 17,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.191,
-      "firstHash": "0x6ec0c759c3173ef6bfbbb9830a7e4f354e8f87ded964249e4f892f902f0b6425"
-    },
-    {
-      "batch": 18,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 12.346,
-      "firstHash": "0xb72549813844c1ccf1bb7755d5c4becb0ea55841498575afb2fb1808ae9caf2d"
-    },
-    {
-      "batch": 19,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.439,
-      "firstHash": "0xcd1f3832a6f99cd6a5407c0dcb53778f7a07c1b701a868162e216b444ca0f137"
-    },
-    {
-      "batch": 20,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.041,
-      "firstHash": "0xbbf6814b4443a9a30b23799d07ab4c4923bc16f2ff795647ac9bf211ec6ca535"
-    },
-    {
-      "batch": 21,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.381,
-      "firstHash": "0xae70fdc280dafd761b89f407febe220fb79c8ee58e1bc3a907c6073ea1a1c609"
-    },
-    {
-      "batch": 22,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 12.972,
-      "firstHash": "0x44fbc121a8bd16453ba5a806b2b91a9d2814da90d102e9bad6e471400bda5711"
-    },
-    {
-      "batch": 23,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.42,
-      "firstHash": "0x0c194d52988d7c38415f92ebd8c266265180c736775930a5798bff10198a50c8"
-    },
-    {
-      "batch": 24,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 12.893,
-      "firstHash": "0xa7103ce551df384fef1a674988cc5b107fc1fd8e8360e358b9bb6a713934624b"
-    },
-    {
-      "batch": 25,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 12.836,
-      "firstHash": "0x5c9f1ebfdb9b884ca97b5135f6eb88974ab2a2be4637618e09d87a5c47a10f50"
-    },
-    {
-      "batch": 26,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.074,
-      "firstHash": "0xc6fd9d6ba48ff0c969cedf79f18ec6b65fce8135a4f6241b734589e7f4ac9134"
-    },
-    {
-      "batch": 27,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.591,
-      "firstHash": "0xa0287efaa5450aa915be3fe9e576661152c89751d92bc10d4284f3b87b90dd68"
-    },
-    {
-      "batch": 28,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 12.956,
-      "firstHash": "0x267b401ef763f5df555b23cd33d412e062e2f3e641dc2cb3fa340893dea4d9da"
-    },
-    {
-      "batch": 29,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 12.967,
-      "firstHash": "0x89ce155e308cdb244878ea002a612f4102e83150c4c0c53484ac20ca0c603a0d"
-    },
-    {
-      "batch": 30,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.473,
-      "firstHash": "0xcd960e41b74e3fcd01a0ea89456edbc92e3c0ee3b5de56d78bcb73d13fec1b93"
-    },
-    {
-      "batch": 31,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.279,
-      "firstHash": "0x6b2f4b90675956714094222e2f925be5c2988dfc109338a9b9b90ef446ad64d8"
-    },
-    {
-      "batch": 32,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 12.973,
-      "firstHash": "0x48c4ddca0b91121b56b6d5ebb2f042ecd495fa357fb4ce5ded9fa49f4bef33fa"
-    },
-    {
-      "batch": 33,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 12.863,
-      "firstHash": "0x83200f1f1f721213847ef97ebbeed0872a9b61fd484afb59805f64a700badc9f"
-    },
-    {
-      "batch": 34,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.363,
-      "firstHash": "0x6005ff7cbc44c42383b766e2bf2c309a654a841804ad4dee4fcdc955a0e50d09"
-    },
-    {
-      "batch": 35,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 12.843,
-      "firstHash": "0x4acd7404375c79431925bc8f337632820b79e5f04f7768a7b723545b3acd6580"
-    },
-    {
-      "batch": 36,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.266,
-      "firstHash": "0x717537a1bf52eedd977c443b46bb7502a17906be797ad91ad96218f8baa74e66"
-    },
-    {
-      "batch": 37,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.182,
-      "firstHash": "0xdeb5dbab51c2df72445d978c930f7744d5a0a81af4defc31b9f9ec6fb48dc095"
-    },
-    {
-      "batch": 38,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 12.995,
-      "firstHash": "0x310e0cb9c4c96371e778bb9ddb4b3a469bc396ed8f61e7b2dd2e20601d227b56"
-    },
-    {
-      "batch": 39,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.296,
-      "firstHash": "0xa6f3037b6b41d92c44c686235bf5691e0277627ec6d0d5b66f8ad1442d12e3e9"
-    },
-    {
-      "batch": 40,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.301,
-      "firstHash": "0x9b2a2221b790e9e0f0524f0dd770fa129cc132b62daced8c0f8f8979b966fd78"
-    },
-    {
-      "batch": 41,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 12.959,
-      "firstHash": "0x537269029845080b6f64659f49f0aa1ca34688f6c454577f09f141935f7ea7b1"
-    },
-    {
-      "batch": 42,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.253,
-      "firstHash": "0x5c0d10ba392c3f0c3f9e429d7b1d120f690a2b35791ab7de60206593fb7e6229"
-    },
-    {
-      "batch": 43,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.167,
-      "firstHash": "0xe72f695367a550ae65236867ae49e63a64fa0e514518bdbcb0ca1c1c52ebc8e5"
-    },
-    {
-      "batch": 44,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.242,
-      "firstHash": "0xfc8a0a789c4cc5e3e5e17d8409ad183bc80a03323bc03507cc82f9dc6f34ed2f"
-    },
-    {
-      "batch": 45,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.38,
-      "firstHash": "0xd8b91a3475eebdb71d026d10e2f1ec2c1e9ad49882dc1ff13d30fbf677215602"
-    },
-    {
-      "batch": 46,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 12.803,
-      "firstHash": "0x61fc70cbcbb1c7cb633ee7e84c0ce1cf2bf6655af7ef634b22b3f94b30b0192a"
-    },
-    {
-      "batch": 47,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.466,
-      "firstHash": "0x97705b067f804634f2c8ee3e3a547ae314b9eb2e77770456604b662890126b4a"
-    },
-    {
-      "batch": 48,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.383,
-      "firstHash": "0x51b2c11a885aea8803ee06ea58a439736798ca49330fb4ebfc682dccffcd2766"
-    },
-    {
-      "batch": 49,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.078,
-      "firstHash": "0x2782838909e130b672c0b9c81838eb9f6da32ba8daa5244ece35b3ddf5796be3"
-    },
-    {
-      "batch": 50,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.343,
-      "firstHash": "0xd6cf282efd6db9000c22b48073b977a26d46da3a162d6e85b8605743691510b1"
-    },
-    {
-      "batch": 51,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.3,
-      "firstHash": "0x643f4ddc8c29b0aa1990ec1d766132a30f03c9534c90f9483b3b2915c6a91916"
-    },
-    {
-      "batch": 52,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.289,
-      "firstHash": "0x28cf25d84363fc12e8894d172f9d2e16b1f5d654112c23a88001291497cc05dd"
-    },
-    {
-      "batch": 53,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.157,
-      "firstHash": "0x3700b609e631120ec29fe4ae26ce86d5765ec35ce72f45f8378eefa603d5960c"
-    },
-    {
-      "batch": 54,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.299,
-      "firstHash": "0xbd42c77e9a8530e7979434400508aec220d1cd8e81b4da4316205b4ee3e0f899"
-    },
-    {
-      "batch": 55,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.344,
-      "firstHash": "0x56aa379668e9e7d9cbcef4e9346bc3ccdcb2fe5acb4c9a3b7f72db1d24d988d0"
-    },
-    {
-      "batch": 56,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.123,
-      "firstHash": "0x60ab2dd8100a3e869114e894cdee58649b21dc424036fdb2b7f1499dbb19f963"
-    },
-    {
-      "batch": 57,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 12.977,
-      "firstHash": "0x536bb2230acc6e2ad8d6a0d673f775f2422b04cd14309feee51dc02d28e0036f"
-    },
-    {
-      "batch": 58,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.395,
-      "firstHash": "0x6708d3afc4f6e48d99f855b37abc1e11b16d8d3d1d1816cb170cd9f15c47a08b"
-    },
-    {
-      "batch": 59,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 12.978,
-      "firstHash": "0x81928efe572f050e66f0a924c73682001d2e6e87f06c8e331eb6573082b95c1b"
-    },
-    {
-      "batch": 60,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.418,
-      "firstHash": "0x7a5fb3ee2f8d912d3bf6afa317a6ed3ce955552f3fd67057053fa210418070e6"
-    },
-    {
-      "batch": 61,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.382,
-      "firstHash": "0xbc7e1a1d8bbbcc6e2dd8593b0fbce604f2329b66940d86f15aea0a21c27459e0"
-    },
-    {
-      "batch": 62,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.409,
-      "firstHash": "0x4280250533fd15e8fa072be731d53654d519a6579993a30630d3574c9c08b0bc"
-    },
-    {
-      "batch": 63,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.286,
-      "firstHash": "0xc9b2b50c9f9421a080437ffe3502250f9e3994527764c0e89225f9ee46fe2887"
-    },
-    {
-      "batch": 64,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.421,
-      "firstHash": "0xc6dc72908bba231ab25b562e762ea1420909eb6217f55d46a020772258818ed3"
-    },
-    {
-      "batch": 65,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.357,
-      "firstHash": "0xed1c61a93450e9490a30cb42ce851326d85d361c0e3754b816aeed31a71a351d"
-    },
-    {
-      "batch": 66,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.356,
-      "firstHash": "0x6c4764641a7c4d660865a0682f3a5387d67453cf3a110f391ce9dae9074c238c"
-    },
-    {
-      "batch": 67,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.506,
-      "firstHash": "0x9d27bbbf649908381138290974da697cbce180983004775ab4a139308db8dbb0"
-    },
-    {
-      "batch": 68,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.563,
-      "firstHash": "0xb35747531739c030d53b807d322606dcb9cde93246fe5a388d221f1e548f1256"
-    },
-    {
-      "batch": 69,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.189,
-      "firstHash": "0xf234ccbde257506e2d4e35592eb9230f1cf0c24e8bac77957d657a5a1792bfff"
-    },
-    {
-      "batch": 70,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.387,
-      "firstHash": "0x55d959ed50321d2acb2cbdb50b7b755092bb71c97ff0530b246c28355ba1b8d3"
-    },
-    {
-      "batch": 71,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.239,
-      "firstHash": "0x44815329cb90042d1fcba10c2927243fddea7af852b84740bc91cfab7fde90bb"
-    },
-    {
-      "batch": 72,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.289,
-      "firstHash": "0x37f54f48c81270f6ce4985b7f9aa43a23b43a98ff168b66f4dd150e230f37b5a"
-    },
-    {
-      "batch": 73,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.447,
-      "firstHash": "0x9bfc3f012697df3ad2065f70ff803e99da9238e0a4d9b9db95f4b0cdab94242b"
-    },
-    {
-      "batch": 74,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.227,
-      "firstHash": "0x7424ec46bc4014e4b2f48430972174334f525368be9b6c33a75cb58f53bc2b52"
-    },
-    {
-      "batch": 75,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.291,
-      "firstHash": "0x3472c446a9ce26f92c37d699b23718f89ce74cfa45539e3ad260be1c3de3ed92"
-    },
-    {
-      "batch": 76,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.474,
-      "firstHash": "0x07b7e913e0fd6e521d12e92e00a11d88b88626bfd9c4c0158ce9dbdb069b9f51"
-    },
-    {
-      "batch": 77,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.4,
-      "firstHash": "0x640f9300f076a618a87706676482c2d3b66f6d6cb97bca9cbdf2584519438bd6"
-    },
-    {
-      "batch": 78,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.041,
-      "firstHash": "0x63f83d8f173d0ef007794a4ac87aa5731520353ed4f3101257be39a633e79ddb"
-    },
-    {
-      "batch": 79,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.276,
-      "firstHash": "0xcae3e16ce031fdd81be7bbc4bceb160d63074dc6893ae1b0e68609f48a64b435"
-    },
-    {
-      "batch": 80,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.302,
-      "firstHash": "0x1dd0ed87f1b795564201d6da3f50b7c2100c4ad23c43093fd53397688cc2bbfd"
-    },
-    {
-      "batch": 81,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.231,
-      "firstHash": "0x21af4d31cc65cb7f331fd84262aa4a98e4bef0b4c250b6c83a2bee81f25c024e"
-    },
-    {
-      "batch": 82,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.639,
-      "firstHash": "0x714a75f46b60c8abc8fee3a0cb60464f0dac9b6b1a650a0e9b8b881788a0cfe6"
-    },
-    {
-      "batch": 83,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 12.89,
-      "firstHash": "0x94f145eaf769e34fbe20bdbf95d52d403fb707f7a980fb911c28172167f49515"
-    },
-    {
-      "batch": 84,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.328,
-      "firstHash": "0x9020ab5e5f037616e17d93ee8f1c5a1ff80c38d954d116e9ab0474c91725691c"
-    },
-    {
-      "batch": 85,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.763,
-      "firstHash": "0x026a2d1ba24fdfeddba32685029ebcb801acb4e817f08abe19f4d48ad3c8ac83"
-    },
-    {
-      "batch": 86,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 12.979,
-      "firstHash": "0x5ecc265da4bb93e33414de45138efc5bc96537e33d84aa8ecc0a2a30ba9231e4"
-    },
-    {
-      "batch": 87,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.212,
-      "firstHash": "0x39807881960edf57d2e8697ae16d003fe9a1f54abb25947ad199b4fc79cf76c8"
-    },
-    {
-      "batch": 88,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.335,
-      "firstHash": "0x7c923d67fd14de5390beb2c2fe81caca818821bfffd941b57965fc803b351fb2"
-    },
-    {
-      "batch": 89,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.044,
-      "firstHash": "0x2a56a28c93b36e01149d476ec96caf66b9327e8ba967e838470e7af39694d868"
-    },
-    {
-      "batch": 90,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.316,
-      "firstHash": "0x064285e70724e6a7aab4ba7dce6486c4376293b49a609405f8084f855ceed163"
-    },
-    {
-      "batch": 91,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.462,
-      "firstHash": "0x8eec4e55d6f247b04605eae05d45968b9b6a5381b04859d5c178b694f79cf2cd"
-    },
-    {
-      "batch": 92,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.089,
-      "firstHash": "0x1f63e949139d00316ee73de62115aabf6ca685478d093796e684787e3dd7ebef"
-    },
-    {
-      "batch": 93,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.053,
-      "firstHash": "0x9019faef09b28a78d8ab952176190d3e49af481b4e782c6ae8411664cdb6ac93"
-    },
-    {
-      "batch": 94,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.355,
-      "firstHash": "0x42bb08c2ad2c0a404d715bda5aba1b85ad6c5453f58616a39f79277a913512cf"
-    },
-    {
-      "batch": 95,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.521,
-      "firstHash": "0x57d43ad93826a91f4081d36471718a0bb6284c992171cb9671a4e58238735362"
-    },
-    {
-      "batch": 96,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.27,
-      "firstHash": "0x69c813edc3b44f02cbef1d135f489d7194085bb38a8f37a523294e079b83ae83"
-    },
-    {
-      "batch": 97,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 13.308,
-      "firstHash": "0xa1ceb8fbe0e8c5197b97bf3dda45a1e155c6616195e6915a42a41e0b7d30421f"
-    },
-    {
-      "batch": 98,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 10719.491,
-      "firstHash": "0x83af5608438fd8ebf6f24e55a164315726374bdf65a1dff6720aeb645263ee35"
-    },
-    {
-      "batch": 99,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 12.249,
-      "firstHash": "0x9cbe13bd6afdca21d0317d4e2647866b119dbfd854fa93c34f8dd098e02dc7dd"
-    },
-    {
-      "batch": 100,
-      "requested": 100,
-      "sent": 100,
-      "skipped": 0,
-      "failed": 0,
-      "timeSeconds": 12.697,
-      "firstHash": "0xc7e78ead9a4c4959f2b49439efb38e17b5494a01bbbee07032b2944d87ee7af4"
+      "timeSeconds": 12.218,
+      "firstHash": "0x2fb1c2ae0ab1724d15f7a40f4b07e523c526c4f4785d1e34b25f5858cb644f7c",
+      "feeTxCount": 100,
+      "feeWei": "212819100618600000",
+      "feeMtv": 0.2128191006186
     }
   ],
-  "startNonce": 14392,
+  "startNonce": 44492,
   "recipient": "0xa93065aeedce32b5792fddcc0c075e812bb01617",
   "amountMtv": 0.0001,
-  "totalTimeSeconds": 12023.281,
+  "totalTimeSeconds": 121.993,
+  "nativeSymbol": "MTV",
+  "gasPerTx": 21000,
+  "gasPriceWei": "101342428866",
+  "feePerTxWei": "2128191006186000",
+  "feePerTxMtv": 0.002128191006186,
+  "feeTxCount": 1000,
+  "totalFeeWei": "2128191006186000000",
+  "totalFeeMtv": 2.128191006186,
   "source": "agent-server",
-  "updatedAt": "2026-09-07T00:49:52.225939+00:00"
+  "updatedAt": "2026-09-07T20:53:18.275838+00:00"
 }

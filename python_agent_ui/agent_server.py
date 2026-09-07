@@ -18,6 +18,12 @@ RPC_URL = os.getenv("WEB3_RPC_URL", "https://rpc.mtv.ac")
 CHAIN_ID = int(os.getenv("CHAIN_ID", "62621"))
 AGENT_PRIVATE_KEY = os.getenv("AGENT_PRIVATE_KEY", "").strip()
 
+# Every transfer is a plain native send, so the gas limit is fixed. The
+# per-run gas price is read once from the node and reused for every tx, so
+# total fees are exactly gas_price * GAS_PER_TX * (number of transactions).
+GAS_PER_TX = 21000
+NATIVE_SYMBOL = os.getenv("NATIVE_SYMBOL", "MTV")
+
 # Progress for the browser UI is written here after every batch so the
 # "Transactions Submitted" panel can update live. app.py serves this same
 # file from GET /api/agent/last-run.
@@ -90,7 +96,7 @@ def build_native_transfer_tx(to_address: str, amount_eth: float) -> dict[str, An
         "nonce": nonce,
         "to": Web3.to_checksum_address(to_address),
         "value": tx_value_wei,
-        "gas": 21000,
+        "gas": GAS_PER_TX,
         "gasPrice": web3.eth.gas_price,
     }
     return tx
@@ -211,7 +217,7 @@ async def trigger(payload: AgentRequest, authorization: str | None = Header(defa
                 "nonce": base_nonce + i,
                 "to": recipient_cs,
                 "value": value_wei,
-                "gas": 21000,
+                "gas": GAS_PER_TX,
                 "gasPrice": gas_price,
             }
             raw_txs.append(web3.eth.account.sign_transaction(tx, AGENT_PRIVATE_KEY).raw_transaction)
@@ -223,7 +229,11 @@ async def trigger(payload: AgentRequest, authorization: str | None = Header(defa
         batches: list[dict[str, Any]] = []
         start_time = time.perf_counter()
 
+        fee_per_tx_wei = GAS_PER_TX * gas_price
+
         def progress(state: str, elapsed: float) -> None:
+            fee_tx_count = len(tx_hashes) + skipped
+            total_fee_wei = fee_tx_count * fee_per_tx_wei
             _write_progress({
                 "status": state,
                 "dryRun": payload.dryRun,
@@ -240,6 +250,14 @@ async def trigger(payload: AgentRequest, authorization: str | None = Header(defa
                 "recipient": recipient,
                 "amountMtv": amount_eth,
                 "totalTimeSeconds": round(elapsed, 3),
+                "nativeSymbol": NATIVE_SYMBOL,
+                "gasPerTx": GAS_PER_TX,
+                "gasPriceWei": str(gas_price),
+                "feePerTxWei": str(fee_per_tx_wei),
+                "feePerTxMtv": float(Web3.from_wei(fee_per_tx_wei, "ether")),
+                "feeTxCount": fee_tx_count,
+                "totalFeeWei": str(total_fee_wei),
+                "totalFeeMtv": float(Web3.from_wei(total_fee_wei, "ether")),
             })
 
         progress("running", 0.0)
@@ -267,6 +285,8 @@ async def trigger(payload: AgentRequest, authorization: str | None = Header(defa
             tx_hashes.extend(batch_hashes)
             skipped += batch_skipped
             failed += batch_failed
+            batch_fee_tx_count = len(batch_hashes) + batch_skipped
+            batch_fee_wei = batch_fee_tx_count * fee_per_tx_wei
             batches.append({
                 "batch": b + 1,
                 "requested": len(chunk),
@@ -275,12 +295,27 @@ async def trigger(payload: AgentRequest, authorization: str | None = Header(defa
                 "failed": batch_failed,
                 "timeSeconds": round(batch_elapsed, 3),
                 "firstHash": batch_hashes[0] if batch_hashes else None,
+                "feeTxCount": batch_fee_tx_count,
+                "feeWei": str(batch_fee_wei),
+                "feeMtv": float(Web3.from_wei(batch_fee_wei, "ether")),
             })
             progress("running", time.perf_counter() - start_time)
 
         elapsed_seconds = time.perf_counter() - start_time
         accepted_total = len(tx_hashes) + skipped
         progress("done", elapsed_seconds)
+
+        total_fee_wei = accepted_total * fee_per_tx_wei
+        fee_fields = {
+            "nativeSymbol": NATIVE_SYMBOL,
+            "gasPerTx": GAS_PER_TX,
+            "gasPriceWei": str(gas_price),
+            "feePerTxWei": str(fee_per_tx_wei),
+            "feePerTxMtv": float(Web3.from_wei(fee_per_tx_wei, "ether")),
+            "feeTxCount": accepted_total,
+            "totalFeeWei": str(total_fee_wei),
+            "totalFeeMtv": float(Web3.from_wei(total_fee_wei, "ether")),
+        }
 
         if not tx_hashes:
             return {
@@ -306,6 +341,7 @@ async def trigger(payload: AgentRequest, authorization: str | None = Header(defa
                 "sender": sender.address,
                 "recipient": recipient,
                 "amountEth": amount_eth,
+                **fee_fields,
                 "message": (
                     f"No transactions were broadcast. {skipped} reported as already known, "
                     f"{failed} failed."
@@ -339,6 +375,7 @@ async def trigger(payload: AgentRequest, authorization: str | None = Header(defa
             "recipient": recipient,
             "amountEth": amount_eth,
             "dryRun": payload.dryRun,
+            **fee_fields,
             "message": (
                 (f"DRY RUN: signed but did not broadcast {len(tx_hashes)} transactions "
                  if payload.dryRun else

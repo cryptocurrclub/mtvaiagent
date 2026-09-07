@@ -361,6 +361,62 @@ const batchSizeEl = document.getElementById('batchSize');
 const runBatchBtn = document.getElementById('runBatchBtn');
 const batchSummaryEl = document.getElementById('batchSummary');
 const batchTableBodyEl = document.getElementById('batchTableBody');
+const batchPaginationEl = document.getElementById('batchPagination');
+const batchPageSizeEl = document.getElementById('batchPageSize');
+const batchPrevBtn = document.getElementById('batchPrevBtn');
+const batchNextBtn = document.getElementById('batchNextBtn');
+const batchPageInfoEl = document.getElementById('batchPageInfo');
+const feesNativeEl = document.getElementById('feesNative');
+const feesUsdEl = document.getElementById('feesUsd');
+const feesMetaEl = document.getElementById('feesMeta');
+
+function formatNativeAmount(value, symbol) {
+  if (value == null || Number.isNaN(Number(value))) return '—';
+  const n = Number(value);
+  let text;
+  if (n === 0) text = '0';
+  else if (n < 1e-6) text = n.toExponential(2);
+  else if (n < 1) text = n.toFixed(6);
+  else text = n.toLocaleString(undefined, { maximumFractionDigits: 6 });
+  return `${text} ${symbol || 'MTV'}`;
+}
+
+function formatUsd(value) {
+  if (value == null || Number.isNaN(Number(value))) return '—';
+  const n = Number(value);
+  if (n === 0) return '$0.00';
+  if (Math.abs(n) < 0.01) return `$${n.toFixed(6)}`;
+  return n.toLocaleString(undefined, { style: 'currency', currency: 'USD' });
+}
+
+function renderFees(fees) {
+  if (!feesNativeEl || !feesUsdEl || !feesMetaEl) return;
+  if (!fees || fees.totalFeeNative == null) {
+    feesNativeEl.textContent = '—';
+    feesUsdEl.textContent = '—';
+    feesMetaEl.textContent = 'No fee data yet';
+    return;
+  }
+
+  const symbol = fees.nativeSymbol || 'MTV';
+  feesNativeEl.textContent = formatNativeAmount(fees.totalFeeNative, symbol);
+  feesUsdEl.textContent = fees.priceUsd == null ? 'Price unavailable' : formatUsd(fees.totalFeeUsd);
+
+  const parts = [];
+  if (fees.txCount != null) parts.push(`${Number(fees.txCount).toLocaleString()} tx`);
+  if (fees.gasPriceGwei != null) {
+    parts.push(`${Number(fees.gasPriceGwei).toFixed(3)} gwei × ${Number(fees.gasPerTx || 21000).toLocaleString()} gas`);
+  }
+  if (fees.priceUsd != null) {
+    parts.push(`1 ${symbol} = ${formatUsd(fees.priceUsd)}`);
+    if (fees.priceSource) {
+      parts.push(`via ${fees.priceSource}${fees.priceStale ? ' (cached)' : ''}`);
+    }
+  } else if (fees.priceError) {
+    parts.push('CoinGecko price unavailable');
+  }
+  feesMetaEl.textContent = parts.join(' · ') || 'Price via CoinGecko';
+}
 
 function setElStatus(el, message, type = 'idle') {
   el.textContent = message;
@@ -374,22 +430,69 @@ function updateBatchSummary() {
   batchSummaryEl.textContent = `${n} batch${n === 1 ? '' : 'es'} of ${size} · real broadcast`;
 }
 
-function renderBatchTable(batches) {
-  if (!Array.isArray(batches) || batches.length === 0) {
-    batchTableBodyEl.innerHTML = '<tr><td colspan="6" class="batch-empty">No batches yet</td></tr>';
+const batchPager = { page: 0, size: 10, batches: [] };
+
+function batchRowHtml(b) {
+  const failed = Number(b.failed || 0);
+  const feeNative = b.feeNative != null
+    ? formatNativeAmount(b.feeNative, '').trim()
+    : (b.feeMtv != null ? formatNativeAmount(b.feeMtv, '').trim() : '—');
+  const feeUsd = b.feeUsd != null ? formatUsd(b.feeUsd) : '—';
+  return `<tr class="${failed ? 'batch-row-failed' : ''}">`
+    + `<td>#${b.batch}</td>`
+    + `<td>${Number(b.requested || 0).toLocaleString()}</td>`
+    + `<td>${Number(b.sent || 0).toLocaleString()}</td>`
+    + `<td>${Number(b.skipped || 0).toLocaleString()}</td>`
+    + `<td>${failed.toLocaleString()}</td>`
+    + `<td>${b.timeSeconds != null ? b.timeSeconds : '—'}</td>`
+    + `<td>${feeNative}</td>`
+    + `<td>${feeUsd}</td>`
+    + '</tr>';
+}
+
+function pageCount() {
+  return Math.max(1, Math.ceil(batchPager.batches.length / batchPager.size));
+}
+
+function renderBatchPage() {
+  const batches = batchPager.batches;
+  if (!batches.length) {
+    batchTableBodyEl.innerHTML = '<tr><td colspan="8" class="batch-empty">No batches yet</td></tr>';
+    if (batchPaginationEl) batchPaginationEl.hidden = true;
     return;
   }
-  batchTableBodyEl.innerHTML = batches.map((b) => {
-    const failed = Number(b.failed || 0);
-    return `<tr class="${failed ? 'batch-row-failed' : ''}">`
-      + `<td>#${b.batch}</td>`
-      + `<td>${Number(b.requested || 0).toLocaleString()}</td>`
-      + `<td>${Number(b.sent || 0).toLocaleString()}</td>`
-      + `<td>${Number(b.skipped || 0).toLocaleString()}</td>`
-      + `<td>${failed.toLocaleString()}</td>`
-      + `<td>${b.timeSeconds != null ? b.timeSeconds : '—'}</td>`
-      + '</tr>';
-  }).join('');
+
+  const pages = pageCount();
+  batchPager.page = Math.min(Math.max(0, batchPager.page), pages - 1);
+  const start = batchPager.page * batchPager.size;
+  const slice = batches.slice(start, start + batchPager.size);
+
+  batchTableBodyEl.innerHTML = slice.map(batchRowHtml).join('');
+
+  if (batchPaginationEl) {
+    batchPaginationEl.hidden = false;
+    const first = start + 1;
+    const last = start + slice.length;
+    batchPageInfoEl.textContent =
+      `${first.toLocaleString()}–${last.toLocaleString()} of ${batches.length.toLocaleString()} · page ${batchPager.page + 1} of ${pages}`;
+    batchPrevBtn.disabled = batchPager.page <= 0;
+    batchNextBtn.disabled = batchPager.page >= pages - 1;
+  }
+}
+
+function renderBatchTable(batches) {
+  const list = Array.isArray(batches) ? batches : [];
+  const prevLen = batchPager.batches.length;
+  const wasOnLastPage = prevLen > 0 && batchPager.page >= pageCount() - 1;
+
+  batchPager.batches = list;
+
+  // While a run streams in new batches, keep following the tail only if the
+  // user was already on the last page; otherwise hold their current page.
+  if (wasOnLastPage && list.length > prevLen) {
+    batchPager.page = pageCount() - 1;
+  }
+  renderBatchPage();
 }
 
 async function refreshTxCount() {
@@ -407,6 +510,7 @@ async function refreshTxCount() {
     txBarFillEl.style.width = target ? `${Math.min(100, (submitted / target) * 100)}%` : '0%';
 
     renderBatchTable(run.batches);
+    renderFees(run.fees);
 
     const batchInfo = run.batchCount
       ? ` across ${run.batchCount} batches of ${run.batchSize}`
@@ -482,6 +586,23 @@ try {
     batchSizeEl.addEventListener('input', updateBatchSummary);
     runBatchBtn.addEventListener('click', runBatch);
     updateBatchSummary();
+  }
+  if (batchPrevBtn && batchNextBtn && batchPageSizeEl) {
+    batchPrevBtn.addEventListener('click', () => {
+      batchPager.page -= 1;
+      renderBatchPage();
+    });
+    batchNextBtn.addEventListener('click', () => {
+      batchPager.page += 1;
+      renderBatchPage();
+    });
+    batchPageSizeEl.addEventListener('change', () => {
+      const size = Number(batchPageSizeEl.value) || 10;
+      const firstRow = batchPager.page * batchPager.size;
+      batchPager.size = size;
+      batchPager.page = Math.floor(firstRow / size);
+      renderBatchPage();
+    });
   }
   if (txCountEl) {
     refreshTxCount();
