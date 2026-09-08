@@ -699,9 +699,11 @@ const FOREVER_BADGE = {
 
 function resolveForeverInterval() {
   if (foreverIntervalEl.value === 'custom') {
-    return Math.max(1, Math.min(3600, Number(foreverCustomEl.value) || 15));
+    const n = Number(foreverCustomEl.value);
+    return Math.max(0, Math.min(3600, Number.isFinite(n) ? n : 15));
   }
-  return Number(foreverIntervalEl.value) || 10;
+  const n = Number(foreverIntervalEl.value);
+  return Math.max(0, Number.isFinite(n) ? n : 10);
 }
 
 function syncForeverCustomVisibility() {
@@ -741,7 +743,10 @@ function renderForever() {
   fmTxEl.textContent = Number(s.txSubmitted || 0).toLocaleString();
   fmTxFailedEl.textContent = Number(s.txFailed || 0).toLocaleString();
   fmStreakEl.textContent = Number(s.consecutiveFailures || 0).toLocaleString();
-  fmNextEl.textContent = secs != null ? `${secs}s` : (s.active ? '—' : 'stopped');
+  const continuous = s.config && Number(s.config.intervalSeconds) === 0;
+  fmNextEl.textContent = secs != null
+    ? `${secs}s`
+    : (s.active ? (continuous ? 'back-to-back' : '—') : 'stopped');
 
   if (s.lastError) {
     foreverErrorEl.hidden = false;
@@ -950,7 +955,7 @@ function applyForeverSnapshot(s) {
   if (s.config && document.activeElement !== foreverIntervalEl
       && document.activeElement !== foreverCustomEl) {
     const iv = Number(s.config.intervalSeconds);
-    const preset = ['5', '10', '30', '60'];
+    const preset = ['0', '5', '10', '30', '60'];
     if (preset.includes(String(iv))) {
       foreverIntervalEl.value = String(iv);
     } else {
@@ -969,8 +974,11 @@ async function startForever() {
   const count = Math.max(1, Number(batchTotalEl.value) || 1000);
   const batchSize = Math.max(1, Number(batchSizeEl.value) || 100);
 
+  const cadence = intervalSeconds > 0
+    ? `every ${intervalSeconds}s`
+    : 'back-to-back with no wait';
   if (!dryRun && !window.confirm(
-    `Run Forever will broadcast ${count} REAL transactions every ${intervalSeconds}s `
+    `Run Forever will broadcast ${count} REAL transactions ${cadence} `
     + 'until you press Stop. This spends MTV continuously. Continue?')) {
     return;
   }

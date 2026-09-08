@@ -775,10 +775,16 @@ class ForeverRunner:
             return
         interval = updates.get("intervalSeconds")
         if interval is not None:
-            self.cfg["intervalSeconds"] = max(
-                FOREVER_MIN_INTERVAL_SECONDS,
-                min(FOREVER_MAX_INTERVAL_SECONDS, float(interval)),
-            )
+            interval = float(interval)
+            if interval <= 0:
+                # Continuous mode: the next cycle starts as soon as the
+                # previous submission finishes, with no wait at all.
+                self.cfg["intervalSeconds"] = 0.0
+            else:
+                self.cfg["intervalSeconds"] = max(
+                    FOREVER_MIN_INTERVAL_SECONDS,
+                    min(FOREVER_MAX_INTERVAL_SECONDS, interval),
+                )
         for key in ("count", "batchSize"):
             if updates.get(key) is not None:
                 self.cfg[key] = max(1, min(20000, int(updates[key])))
@@ -989,8 +995,13 @@ class ForeverRunner:
                     break
 
                 wait = self.cfg["intervalSeconds"]
-                self._set(phase="waiting", nextRunAt=_iso_in(wait),
-                          message=f"Waiting {wait:g}s until next cycle…")
+                if wait <= 0:
+                    self._set(phase="submitting", nextRunAt=None,
+                              message=f"Cycle #{cycle_no} done — starting next immediately (continuous).")
+                else:
+                    self._set(phase="waiting", nextRunAt=_iso_in(wait),
+                              message=f"Waiting {wait:g}s until next cycle…")
+                # _sleep_or_stop(0) returns at once but still honours a pending stop.
                 if await self._sleep_or_stop(wait):
                     break
         except asyncio.CancelledError:
@@ -1016,7 +1027,7 @@ forever_runner = ForeverRunner()
 
 
 class ForeverStartRequest(BaseModel):
-    intervalSeconds: float | None = Field(default=None, ge=0.5, le=3600)
+    intervalSeconds: float | None = Field(default=None, ge=0, le=3600)
     count: int | None = Field(default=None, ge=1, le=20000)
     batchSize: int | None = Field(default=None, ge=1, le=20000)
     amountMtv: float | None = None
